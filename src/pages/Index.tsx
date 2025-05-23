@@ -1,13 +1,14 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { TradingChart } from '@/components/TradingChart';
+import { CandlestickChart } from '@/components/CandlestickChart';
 import { OrderBook } from '@/components/OrderBook';
 import { TradingInterface } from '@/components/TradingInterface';
 import { Portfolio } from '@/components/Portfolio';
 import { MarketSimulation } from '@/lib/MarketSimulation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, Activity, TrendingUp, TrendingDown } from 'lucide-react';
 
 const Index = () => {
   const [isRunning, setIsRunning] = useState(false);
@@ -15,11 +16,18 @@ const Index = () => {
     price: 100,
     volume: 0,
     change: 0,
-    changePercent: 0
+    changePercent: 0,
+    marketSentiment: 0.5,
+    volatilityIndex: 0.1,
+    candlestickData: [],
+    currentCandle: null,
+    marketEvents: [],
+    geminiAIStatus: null
   });
   const [portfolio, setPortfolio] = useState({
     cash: 10000000,
     shares: 0,
+    shortPosition: 0,
     totalValue: 10000000,
     pnl: 0,
     pnlPercent: 0
@@ -53,14 +61,34 @@ const Index = () => {
   const handleReset = () => {
     simulationRef.current?.reset();
     setIsRunning(false);
-    setMarketData({ price: 100, volume: 0, change: 0, changePercent: 0 });
-    setPortfolio({ cash: 10000000, shares: 0, totalValue: 10000000, pnl: 0, pnlPercent: 0 });
+    setMarketData({ 
+      price: 100, volume: 0, change: 0, changePercent: 0, 
+      marketSentiment: 0.5, volatilityIndex: 0.1, 
+      candlestickData: [], currentCandle: null, marketEvents: [], geminiAIStatus: null 
+    });
+    setPortfolio({ cash: 10000000, shares: 0, shortPosition: 0, totalValue: 10000000, pnl: 0, pnlPercent: 0 });
     setOrders([]);
     setChartData([]);
   };
 
-  const handleTrade = (type, quantity, price) => {
-    simulationRef.current?.executeTrade(type, quantity, price);
+  const handleTrade = (type: 'buy' | 'sell', quantity: number, price: number, isShort: boolean = false) => {
+    simulationRef.current?.executeTrade(type, quantity, price, isShort);
+  };
+
+  const getSentimentColor = (sentiment: number) => {
+    if (sentiment < 0.2) return 'text-red-500';
+    if (sentiment < 0.4) return 'text-orange-500';
+    if (sentiment < 0.6) return 'text-yellow-500';
+    if (sentiment < 0.8) return 'text-green-500';
+    return 'text-emerald-500';
+  };
+
+  const getSentimentLabel = (sentiment: number) => {
+    if (sentiment < 0.2) return 'Extreme Fear';
+    if (sentiment < 0.4) return 'Fear';
+    if (sentiment < 0.6) return 'Neutral';
+    if (sentiment < 0.8) return 'Greed';
+    return 'Extreme Greed';
   };
 
   return (
@@ -70,10 +98,10 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-              Market Simulation
+              AI-Powered Market Simulation
             </h1>
             <p className="text-gray-400 mt-1">
-              Advanced trading simulation with $10M starting capital
+              Real-time trading with Gemini AI Market Maker • Shorts Enabled • $10M Capital
             </p>
           </div>
           
@@ -93,7 +121,7 @@ const Index = () => {
         </div>
 
         {/* Market Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card className="bg-gray-800 border-gray-700 p-4">
             <div className="text-sm text-gray-400">Current Price</div>
             <div className="text-2xl font-bold text-white">${marketData.price.toFixed(2)}</div>
@@ -111,43 +139,89 @@ const Index = () => {
           </Card>
           
           <Card className="bg-gray-800 border-gray-700 p-4">
-            <div className="text-sm text-gray-400">Cash Available</div>
-            <div className="text-2xl font-bold text-white">${portfolio.cash.toLocaleString()}</div>
-            <div className="text-sm text-gray-400">Ready to deploy</div>
+            <div className="text-sm text-gray-400">Market Sentiment</div>
+            <div className={`text-lg font-bold ${getSentimentColor(marketData.marketSentiment)}`}>
+              {getSentimentLabel(marketData.marketSentiment)}
+            </div>
+            <div className="text-sm text-gray-400">{(marketData.marketSentiment * 100).toFixed(0)}/100</div>
           </Card>
           
           <Card className="bg-gray-800 border-gray-700 p-4">
-            <div className="text-sm text-gray-400">Shares Owned</div>
-            <div className="text-2xl font-bold text-white">{portfolio.shares.toLocaleString()}</div>
+            <div className="text-sm text-gray-400">Volatility</div>
+            <div className="text-lg font-bold text-blue-400">
+              {(marketData.volatilityIndex * 100).toFixed(1)}%
+            </div>
             <div className="text-sm text-gray-400">
-              Worth ${(portfolio.shares * marketData.price).toLocaleString()}
+              <Activity className="w-3 h-3 inline mr-1" />
+              {marketData.volatilityIndex > 0.3 ? 'Extreme' : marketData.volatilityIndex > 0.2 ? 'High' : 'Normal'}
+            </div>
+          </Card>
+
+          <Card className="bg-gray-800 border-gray-700 p-4">
+            <div className="text-sm text-gray-400">Short Position</div>
+            <div className="text-lg font-bold text-orange-400">{portfolio.shortPosition.toLocaleString()}</div>
+            <div className="text-sm text-gray-400">
+              Worth ${(portfolio.shortPosition * marketData.price).toLocaleString()}
             </div>
           </Card>
         </div>
 
-        {/* Main Trading Interface */}
+        {/* AI Status */}
+        {marketData.geminiAIStatus && (
+          <Card className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border-purple-700 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1">Gemini AI Market Maker Status</h3>
+                <div className="text-sm text-gray-300">
+                  Capital: ${marketData.geminiAIStatus.capital?.toLocaleString()} • 
+                  Position: {marketData.geminiAIStatus.position?.toLocaleString()} shares
+                </div>
+              </div>
+              <div className="text-green-400 font-bold">ACTIVE</div>
+            </div>
+          </Card>
+        )}
+
+        {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Chart */}
           <div className="lg:col-span-2">
-            <TradingChart data={chartData} currentPrice={marketData.price} />
+            <CandlestickChart 
+              data={marketData.candlestickData} 
+              currentCandle={marketData.currentCandle}
+              currentPrice={marketData.price} 
+            />
           </div>
           
-          {/* Order Book */}
           <div>
             <OrderBook orders={orders} currentPrice={marketData.price} />
           </div>
         </div>
 
-        {/* Trading Controls and Portfolio */}
+        {/* Trading and Portfolio */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <TradingInterface 
             onTrade={handleTrade}
             currentPrice={marketData.price}
             cash={portfolio.cash}
             shares={portfolio.shares}
+            shortPosition={portfolio.shortPosition}
           />
           <Portfolio portfolio={portfolio} marketData={marketData} />
         </div>
+
+        {/* Market Events */}
+        {marketData.marketEvents && marketData.marketEvents.length > 0 && (
+          <Card className="bg-gray-800 border-gray-700 p-4">
+            <h3 className="text-lg font-semibold text-white mb-3">Live Market Events</h3>
+            <div className="space-y-2">
+              {marketData.marketEvents.slice(-5).reverse().map((event, index) => (
+                <div key={index} className="text-sm p-2 bg-yellow-900/20 text-yellow-300 rounded border-l-4 border-yellow-500">
+                  {event}
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
       </div>
     </div>
   );

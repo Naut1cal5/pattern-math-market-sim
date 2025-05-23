@@ -8,7 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, TrendingDown, Zap, Target } from 'lucide-react';
 
-export const TradingInterface = ({ onTrade, currentPrice, cash, shares }) => {
+export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPosition = 0 }: {
+  onTrade: (type: 'buy' | 'sell', quantity: number, price: number, isShort?: boolean) => void;
+  currentPrice: number;
+  cash: number;
+  shares: number;
+  shortPosition?: number;
+}) => {
   const [quantity, setQuantity] = useState(100);
   const [price, setPrice] = useState(currentPrice);
   const [orderType, setOrderType] = useState('market');
@@ -16,48 +22,40 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares }) => {
 
   const maxBuyQuantity = Math.floor(cash / currentPrice);
   const maxSellQuantity = shares;
+  const maxShortQuantity = Math.floor(cash / currentPrice); // Can short based on cash as collateral
 
   const handleBuy = () => {
     if (quantity > 0 && quantity <= maxBuyQuantity) {
-      onTrade('buy', quantity, orderType === 'market' ? currentPrice : price);
+      onTrade('buy', quantity, orderType === 'market' ? currentPrice : price, false);
       setQuantity(100);
     }
   };
 
   const handleSell = () => {
     if (quantity > 0 && quantity <= maxSellQuantity) {
-      onTrade('sell', quantity, orderType === 'market' ? currentPrice : price);
+      onTrade('sell', quantity, orderType === 'market' ? currentPrice : price, false);
       setQuantity(100);
     }
   };
 
-  const executeStrategy = () => {
-    let strategyQuantity;
-    
-    switch (strategy) {
-      case 'whale':
-        strategyQuantity = Math.floor(maxBuyQuantity * 0.1); // 10% of buying power
-        onTrade('buy', strategyQuantity, currentPrice);
-        break;
-      case 'scalping':
-        strategyQuantity = Math.floor(maxBuyQuantity * 0.01); // 1% for quick trades
-        onTrade('buy', strategyQuantity, currentPrice * 0.999);
-        setTimeout(() => {
-          onTrade('sell', strategyQuantity, currentPrice * 1.001);
-        }, 2000);
-        break;
-      case 'momentum':
-        strategyQuantity = Math.floor(maxBuyQuantity * 0.05); // 5% following trend
-        onTrade('buy', strategyQuantity, currentPrice * 1.001);
-        break;
-      default:
-        break;
+  const handleShort = () => {
+    if (quantity > 0 && quantity <= maxShortQuantity) {
+      onTrade('sell', quantity, orderType === 'market' ? currentPrice : price, true);
+      setQuantity(100);
+    }
+  };
+
+  const handleCover = () => {
+    const coverQuantity = Math.min(quantity, shortPosition);
+    if (coverQuantity > 0) {
+      onTrade('buy', coverQuantity, orderType === 'market' ? currentPrice : price, true);
+      setQuantity(100);
     }
   };
 
   return (
     <Card className="bg-gray-800 border-gray-700 p-4">
-      <h3 className="text-lg font-semibold text-white mb-4">Trading Interface</h3>
+      <h3 className="text-lg font-semibold text-white mb-4">Advanced Trading Interface</h3>
       
       <Tabs defaultValue="manual" className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-gray-700">
@@ -105,11 +103,12 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares }) => {
             </div>
           )}
 
-          <div className="flex gap-2">
+          {/* Long Positions */}
+          <div className="grid grid-cols-2 gap-2">
             <Button 
               onClick={handleBuy}
               disabled={quantity > maxBuyQuantity || quantity <= 0}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
               <TrendingUp className="w-4 h-4 mr-2" />
               BUY ${(quantity * (orderType === 'market' ? currentPrice : price)).toLocaleString()}
@@ -118,16 +117,40 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares }) => {
             <Button 
               onClick={handleSell}
               disabled={quantity > maxSellQuantity || quantity <= 0}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               <TrendingDown className="w-4 h-4 mr-2" />
               SELL {quantity.toLocaleString()} shares
             </Button>
           </div>
 
-          <div className="text-xs text-gray-400 space-y-1">
+          {/* Short Positions */}
+          <div className="grid grid-cols-2 gap-2">
+            <Button 
+              onClick={handleShort}
+              disabled={quantity > maxShortQuantity || quantity <= 0}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              <TrendingDown className="w-4 h-4 mr-2" />
+              SHORT {quantity.toLocaleString()} shares
+            </Button>
+            
+            <Button 
+              onClick={handleCover}
+              disabled={quantity > shortPosition || quantity <= 0 || shortPosition <= 0}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <TrendingUp className="w-4 h-4 mr-2" />
+              COVER {Math.min(quantity, shortPosition).toLocaleString()} shorts
+            </Button>
+          </div>
+
+          <div className="text-xs text-gray-400 space-y-1 p-3 bg-gray-700 rounded">
             <div>Max Buy: {maxBuyQuantity.toLocaleString()} shares</div>
             <div>Max Sell: {maxSellQuantity.toLocaleString()} shares</div>
+            <div>Max Short: {maxShortQuantity.toLocaleString()} shares</div>
+            <div className="text-orange-400">Short Position: {shortPosition.toLocaleString()} shares</div>
+            <div className="text-yellow-400">Short P&L: ${((shortPosition * currentPrice) - (shortPosition * currentPrice)).toLocaleString()}</div>
           </div>
         </TabsContent>
         
