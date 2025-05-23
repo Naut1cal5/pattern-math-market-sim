@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { TradingChart } from '@/components/TradingChart';
 import { CandlestickChart } from '@/components/CandlestickChart';
@@ -9,7 +8,7 @@ import { MarketSentiment } from '@/components/MarketSentiment';
 import { MarketSimulation } from '@/lib/MarketSimulation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, Activity, TrendingUp, TrendingDown, Moon, Sun, Brain, DollarSign } from 'lucide-react';
+import { Play, Pause, RotateCcw, Activity, TrendingUp, TrendingDown, Moon, Sun, Brain } from 'lucide-react';
 
 const Index = () => {
   const [isRunning, setIsRunning] = useState(false);
@@ -24,15 +23,13 @@ const Index = () => {
     candlestickData: [],
     currentCandle: null,
     marketEvents: [],
-    neuralNetworkStatus: null,
-    dailyVolume: 0,
-    dailyVolumeTarget: 7000000000000
+    neuralNetworkStatus: null
   });
   const [portfolio, setPortfolio] = useState({
-    cash: 3000000000000,
+    cash: 10000000,
     shares: 0,
     shortPosition: 0,
-    totalValue: 3000000000000,
+    totalValue: 10000000,
     pnl: 0,
     pnlPercent: 0
   });
@@ -68,10 +65,9 @@ const Index = () => {
     setMarketData({ 
       price: 100, volume: 0, change: 0, changePercent: 0, 
       marketSentiment: 0.5, volatilityIndex: 0.1, 
-      candlestickData: [], currentCandle: null, marketEvents: [], 
-      neuralNetworkStatus: null, dailyVolume: 0, dailyVolumeTarget: 7000000000000
+      candlestickData: [], currentCandle: null, marketEvents: [], neuralNetworkStatus: null 
     });
-    setPortfolio({ cash: 3000000000000, shares: 0, shortPosition: 0, totalValue: 3000000000000, pnl: 0, pnlPercent: 0 });
+    setPortfolio({ cash: 10000000, shares: 0, shortPosition: 0, totalValue: 10000000, pnl: 0, pnlPercent: 0 });
     setOrders([]);
     setChartData([]);
   };
@@ -84,17 +80,6 @@ const Index = () => {
     if (simulationRef.current?.makeNeuralNetworkMarketDecision) {
       await simulationRef.current.makeNeuralNetworkMarketDecision();
     }
-  };
-
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000000000) {
-      return `$${(amount / 1000000000000).toFixed(2)}T`;
-    } else if (amount >= 1000000000) {
-      return `$${(amount / 1000000000).toFixed(2)}B`;
-    } else if (amount >= 1000000) {
-      return `$${(amount / 1000000).toFixed(2)}M`;
-    }
-    return `$${amount.toLocaleString()}`;
   };
 
   const getSentimentColor = (sentiment: number) => {
@@ -120,10 +105,10 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-              Trillion Dollar Market Simulation
+              Neural Network Market Simulation
             </h1>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
-              Neural Network • 500 Market Makers @ $10B each • $3T Capital • $7T Daily Volume Target
+              Real-time trading with Neural Network Market Maker • Shorts Enabled • $10M Capital
             </p>
           </div>
           
@@ -154,7 +139,7 @@ const Index = () => {
         </div>
 
         {/* Market Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-4`}>
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Current Price</div>
             <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>${marketData.price.toFixed(2)}</div>
@@ -165,7 +150,7 @@ const Index = () => {
           
           <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-4`}>
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Portfolio Value</div>
-            <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatCurrency(portfolio.totalValue)}</div>
+            <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>${portfolio.totalValue.toLocaleString()}</div>
             <div className={`text-sm ${portfolio.pnlPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {portfolio.pnlPercent >= 0 ? '+' : ''}{portfolio.pnlPercent.toFixed(2)}%
             </div>
@@ -194,16 +179,7 @@ const Index = () => {
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Short Position</div>
             <div className="text-lg font-bold text-orange-400">{portfolio.shortPosition.toLocaleString()}</div>
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Worth {formatCurrency(portfolio.shortPosition * marketData.price)}
-            </div>
-          </Card>
-
-          <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-4`}>
-            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Daily Volume</div>
-            <div className="text-lg font-bold text-purple-400">{formatCurrency(marketData.dailyVolume || 0)}</div>
-            <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              <DollarSign className="w-3 h-3 inline mr-1" />
-              Target: {formatCurrency(marketData.dailyVolumeTarget)}
+              Worth ${(portfolio.shortPosition * marketData.price).toLocaleString()}
             </div>
           </Card>
         </div>
@@ -215,7 +191,7 @@ const Index = () => {
               <div>
                 <h3 className="text-lg font-semibold text-white mb-1">Neural Network Market Maker Status</h3>
                 <div className="text-sm text-gray-300">
-                  Capital: {formatCurrency(marketData.neuralNetworkStatus.capital || 0)} • 
+                  Capital: ${marketData.neuralNetworkStatus.capital?.toLocaleString()} • 
                   Position: {marketData.neuralNetworkStatus.position?.toLocaleString()} shares • 
                   Type: {marketData.neuralNetworkStatus.marketMakerType}
                 </div>

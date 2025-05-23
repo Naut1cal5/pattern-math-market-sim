@@ -85,9 +85,15 @@ export const CandlestickChart = ({ data, currentCandle, currentPrice }: Candlest
       ctx.lineTo(x, lowY);
       ctx.stroke();
 
-      // Draw body - both green and red candles are now filled
-      ctx.fillStyle = isGreen ? '#10b981' : '#ef4444';
-      ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
+      // Draw body
+      if (isGreen) {
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
+      } else {
+        ctx.fillStyle = '#ef4444';
+        ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
+      }
 
       // Draw volume
       const volumeBarHeight = (candle.volume / maxVolume) * volumeHeight;
@@ -123,7 +129,7 @@ export const CandlestickChart = ({ data, currentCandle, currentPrice }: Candlest
         <h3 className="text-lg font-semibold text-white">1-Minute Candlestick Chart</h3>
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
+            <div className="w-3 h-3 border border-green-500 rounded-sm"></div>
             <span className="text-gray-400">Bullish</span>
           </div>
           <div className="flex items-center gap-2">
