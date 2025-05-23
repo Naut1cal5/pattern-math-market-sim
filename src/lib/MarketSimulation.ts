@@ -1,3 +1,4 @@
+
 import { GeminiAITrader } from './GeminiAITrader';
 
 interface TraderType {
@@ -11,7 +12,7 @@ interface TraderType {
 }
 
 interface OrderType {
-  type: 'buy' | 'sell';
+  type: 'buy' | 'sell';  // Explicitly define as union type
   price: number;
   quantity: number;
   trader: string;
@@ -742,9 +743,10 @@ export class MarketSimulation {
   private updateCallbacks() {
     this.updatePortfolio();
     
-    const orders = [
-      ...this.orderBook.buys.map(order => ({ ...order, type: 'buy' })),
-      ...this.orderBook.sells.map(order => ({ ...order, type: 'sell' }))
+    // Fix the type issue by explicitly typing the mapped objects
+    const orders: OrderType[] = [
+      ...this.orderBook.buys.map(order => ({ ...order, type: 'buy' as const })),
+      ...this.orderBook.sells.map(order => ({ ...order, type: 'sell' as const }))
     ];
     
     this.onOrderBookUpdate(orders);

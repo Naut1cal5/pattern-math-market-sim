@@ -53,6 +53,33 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPos
     }
   };
 
+  // Add the missing executeStrategy function
+  const executeStrategy = () => {
+    // Implement strategy execution based on selected strategy
+    switch (strategy) {
+      case 'whale':
+        // Whale order - use 10% of capital
+        const whaleQuantity = Math.floor((cash * 0.1) / currentPrice);
+        onTrade('buy', whaleQuantity, currentPrice, false);
+        break;
+      case 'scalping':
+        // Scalping - small quick trades
+        const scalpQuantity = Math.min(100, maxBuyQuantity);
+        onTrade('buy', scalpQuantity, currentPrice * 0.998, false);
+        setTimeout(() => {
+          onTrade('sell', scalpQuantity, currentPrice * 1.002, false);
+        }, 1000);
+        break;
+      case 'momentum':
+        // Momentum trading - medium sized position
+        const momentumQuantity = Math.min(500, maxBuyQuantity);
+        onTrade('buy', momentumQuantity, currentPrice, false);
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <Card className="bg-gray-800 border-gray-700 p-4">
       <h3 className="text-lg font-semibold text-white mb-4">Advanced Trading Interface</h3>
