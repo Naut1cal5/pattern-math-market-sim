@@ -1,4 +1,3 @@
-
 import { GeminiAITrader } from './GeminiAITrader';
 
 interface TraderType {
@@ -686,6 +685,31 @@ export class MarketSimulation {
     }
     
     this.updatePortfolio();
+  }
+
+  // Add public method to access Gemini AI for manual market making
+  async makeGeminiMarketDecision() {
+    if (!this.geminiAI) return null;
+    
+    try {
+      const aiOrder = await this.geminiAI.makeMarketDecision({
+        price: this.currentPrice,
+        volume: this.volume,
+        changePercent: ((this.currentPrice - this.previousPrice) / this.previousPrice) * 100,
+        marketSentiment: this.marketSentiment,
+        volatilityIndex: this.volatilityIndex
+      });
+      
+      if (aiOrder) {
+        this.addOrder(aiOrder);
+        this.marketEvents.push(`Manual AI Decision: ${aiOrder.reasoning}`);
+        return aiOrder;
+      }
+    } catch (error) {
+      console.error('Manual Gemini AI Error:', error);
+    }
+    
+    return null;
   }
 
   private cleanOrderBook() {

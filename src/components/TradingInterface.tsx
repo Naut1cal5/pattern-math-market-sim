@@ -8,12 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TrendingUp, TrendingDown, Zap, Target } from 'lucide-react';
 
-export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPosition = 0 }: {
+export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPosition = 0, onGeminiTrade }: {
   onTrade: (type: 'buy' | 'sell', quantity: number, price: number, isShort?: boolean) => void;
   currentPrice: number;
   cash: number;
   shares: number;
   shortPosition?: number;
+  onGeminiTrade?: () => Promise<void>;
 }) => {
   const [quantity, setQuantity] = useState(100);
   const [price, setPrice] = useState(currentPrice);
@@ -74,6 +75,12 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPos
         // Momentum trading - medium sized position
         const momentumQuantity = Math.min(500, maxBuyQuantity);
         onTrade('buy', momentumQuantity, currentPrice, false);
+        break;
+      case 'gemini_ai':
+        // Use Gemini AI for market making
+        if (onGeminiTrade) {
+          onGeminiTrade();
+        }
         break;
       default:
         break;
@@ -192,6 +199,7 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPos
                 <SelectItem value="whale">🐋 Whale Orders (10% of capital)</SelectItem>
                 <SelectItem value="scalping">⚡ Scalping (Quick profits)</SelectItem>
                 <SelectItem value="momentum">📈 Momentum Trading</SelectItem>
+                <SelectItem value="gemini_ai">🤖 Gemini AI Market Maker</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -210,6 +218,7 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPos
               {strategy === 'whale' && "Place large orders that can move the market significantly"}
               {strategy === 'scalping' && "Quick buy/sell pairs for small profits"}
               {strategy === 'momentum' && "Follow market trends with medium-sized orders"}
+              {strategy === 'gemini_ai' && "Let Gemini AI make strategic market-making decisions"}
             </div>
           </div>
         </TabsContent>
