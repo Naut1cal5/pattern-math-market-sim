@@ -1,4 +1,4 @@
-import { GeminiAITrader } from './GeminiAITrader';
+import { NeuralNetworkTrader } from './NeuralNetworkTrader';
 
 interface TraderType {
   type: string;
@@ -19,6 +19,7 @@ interface OrderType {
   isShort?: boolean;
   reasoning?: string;
   isAI?: boolean;
+  confidence?: number;
 }
 
 export class MarketSimulation {
@@ -48,7 +49,7 @@ export class MarketSimulation {
   
   private traders: TraderType[] = [];
   private aiTraders: TraderType[] = [];
-  private geminiAI: GeminiAITrader | null = null;
+  private neuralNetworkTrader: NeuralNetworkTrader | null = null;
   private marketEvents: string[] = [];
   private candlestickData: any[] = [];
   private currentCandle: any = null;
@@ -77,11 +78,11 @@ export class MarketSimulation {
       pnlPercent: 0
     };
     
-    // Initialize Gemini AI
+    // Initialize Neural Network Trader
     try {
-      this.geminiAI = new GeminiAITrader('AIzaSyCqqSiJgP5slH0MgD_eEY4nkpONg-kDy8M');
+      this.neuralNetworkTrader = new NeuralNetworkTrader();
     } catch (error) {
-      console.error('Failed to initialize Gemini AI:', error);
+      console.error('Failed to initialize Neural Network Trader:', error);
     }
     
     this.initializeTraders();
@@ -207,12 +208,12 @@ export class MarketSimulation {
     this.candleStartTime = 0;
     this.marketSentiment = 0.5;
     this.volatilityIndex = 0.1;
-    this.geminiAI = null;
+    this.neuralNetworkTrader = null;
     
     try {
-      this.geminiAI = new GeminiAITrader('AIzaSyCqqSiJgP5slH0MgD_eEY4nkpONg-kDy8M');
+      this.neuralNetworkTrader = new NeuralNetworkTrader();
     } catch (error) {
-      console.error('Failed to initialize Gemini AI:', error);
+      console.error('Failed to initialize Neural Network Trader:', error);
     }
     
     this.initializeTraders();
@@ -231,10 +232,10 @@ export class MarketSimulation {
     this.generateOrders();
     this.generateAIOrders();
     
-    // Gemini AI decisions
-    if (this.geminiAI && this.time % 100 === 0) { // Every 5 seconds
+    // Neural Network Trader decisions
+    if (this.neuralNetworkTrader && this.time % 20 === 0) { // Every 2 seconds (more frequent than Gemini AI)
       try {
-        const aiOrder = await this.geminiAI.makeMarketDecision({
+        const aiOrder = await this.neuralNetworkTrader.makeMarketDecision({
           price: this.currentPrice,
           volume: this.volume,
           changePercent: ((this.currentPrice - this.previousPrice) / this.previousPrice) * 100,
@@ -244,10 +245,10 @@ export class MarketSimulation {
         
         if (aiOrder) {
           this.addOrder(aiOrder);
-          this.marketEvents.push(`AI Market Maker: ${aiOrder.reasoning}`);
+          this.marketEvents.push(`Neural Network: ${aiOrder.reasoning} (${Math.round(aiOrder.confidence! * 100)}% confidence)`);
         }
       } catch (error) {
-        console.error('Gemini AI Error:', error);
+        console.error('Neural Network Trader Error:', error);
       }
     }
     
@@ -687,12 +688,12 @@ export class MarketSimulation {
     this.updatePortfolio();
   }
 
-  // Add public method to access Gemini AI for manual market making
-  async makeGeminiMarketDecision() {
-    if (!this.geminiAI) return null;
+  // Add public method to access Neural Network Trader for manual market making
+  async makeNeuralNetworkMarketDecision() {
+    if (!this.neuralNetworkTrader) return null;
     
     try {
-      const aiOrder = await this.geminiAI.makeMarketDecision({
+      const aiOrder = await this.neuralNetworkTrader.makeMarketDecision({
         price: this.currentPrice,
         volume: this.volume,
         changePercent: ((this.currentPrice - this.previousPrice) / this.previousPrice) * 100,
@@ -702,11 +703,11 @@ export class MarketSimulation {
       
       if (aiOrder) {
         this.addOrder(aiOrder);
-        this.marketEvents.push(`Manual AI Decision: ${aiOrder.reasoning}`);
+        this.marketEvents.push(`Manual Neural Network Decision: ${aiOrder.reasoning}`);
         return aiOrder;
       }
     } catch (error) {
-      console.error('Manual Gemini AI Error:', error);
+      console.error('Manual Neural Network Error:', error);
     }
     
     return null;
@@ -767,7 +768,7 @@ export class MarketSimulation {
   private updateCallbacks() {
     this.updatePortfolio();
     
-    // Fix the type issue by explicitly typing the mapped objects
+    // Fix the type issue by explicitly typing the mapped objects to OrderType
     const orders: OrderType[] = [
       ...this.orderBook.buys.map(order => ({ ...order, type: 'buy' as const })),
       ...this.orderBook.sells.map(order => ({ ...order, type: 'sell' as const }))
@@ -791,7 +792,7 @@ export class MarketSimulation {
       candlestickData: this.candlestickData,
       currentCandle: this.currentCandle,
       marketEvents: this.marketEvents.slice(-10),
-      geminiAIStatus: this.geminiAI?.getStatus()
+      neuralNetworkStatus: this.neuralNetworkTrader?.getStatus()
     });
   }
 }

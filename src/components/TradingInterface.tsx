@@ -6,15 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingUp, TrendingDown, Zap, Target } from 'lucide-react';
+import { TrendingUp, TrendingDown, Zap, Target, Brain } from 'lucide-react';
 
-export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPosition = 0, onGeminiTrade }: {
+export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPosition = 0, onNeuralNetworkTrade }: {
   onTrade: (type: 'buy' | 'sell', quantity: number, price: number, isShort?: boolean) => void;
   currentPrice: number;
   cash: number;
   shares: number;
   shortPosition?: number;
-  onGeminiTrade?: () => Promise<void>;
+  onNeuralNetworkTrade?: () => Promise<void>;
 }) => {
   const [quantity, setQuantity] = useState(100);
   const [price, setPrice] = useState(currentPrice);
@@ -54,7 +54,6 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPos
     }
   };
 
-  // Add the missing executeStrategy function
   const executeStrategy = () => {
     // Implement strategy execution based on selected strategy
     switch (strategy) {
@@ -76,10 +75,10 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPos
         const momentumQuantity = Math.min(500, maxBuyQuantity);
         onTrade('buy', momentumQuantity, currentPrice, false);
         break;
-      case 'gemini_ai':
-        // Use Gemini AI for market making
-        if (onGeminiTrade) {
-          onGeminiTrade();
+      case 'neural_network':
+        // Use Neural Network AI for market making
+        if (onNeuralNetworkTrade) {
+          onNeuralNetworkTrade();
         }
         break;
       default:
@@ -199,7 +198,7 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPos
                 <SelectItem value="whale">🐋 Whale Orders (10% of capital)</SelectItem>
                 <SelectItem value="scalping">⚡ Scalping (Quick profits)</SelectItem>
                 <SelectItem value="momentum">📈 Momentum Trading</SelectItem>
-                <SelectItem value="gemini_ai">🤖 Gemini AI Market Maker</SelectItem>
+                <SelectItem value="neural_network">🧠 Neural Network Market Maker</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -218,7 +217,7 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPos
               {strategy === 'whale' && "Place large orders that can move the market significantly"}
               {strategy === 'scalping' && "Quick buy/sell pairs for small profits"}
               {strategy === 'momentum' && "Follow market trends with medium-sized orders"}
-              {strategy === 'gemini_ai' && "Let Gemini AI make strategic market-making decisions"}
+              {strategy === 'neural_network' && "Neural network market maker making decisions based on technical analysis and sentiment"}
             </div>
           </div>
         </TabsContent>

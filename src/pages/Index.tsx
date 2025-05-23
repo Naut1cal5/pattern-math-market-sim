@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { TradingChart } from '@/components/TradingChart';
 import { CandlestickChart } from '@/components/CandlestickChart';
@@ -9,7 +8,7 @@ import { MarketSentiment } from '@/components/MarketSentiment';
 import { MarketSimulation } from '@/lib/MarketSimulation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, Activity, TrendingUp, TrendingDown, Moon, Sun } from 'lucide-react';
+import { Play, Pause, RotateCcw, Activity, TrendingUp, TrendingDown, Moon, Sun, Brain } from 'lucide-react';
 
 const Index = () => {
   const [isRunning, setIsRunning] = useState(false);
@@ -24,7 +23,7 @@ const Index = () => {
     candlestickData: [],
     currentCandle: null,
     marketEvents: [],
-    geminiAIStatus: null
+    neuralNetworkStatus: null
   });
   const [portfolio, setPortfolio] = useState({
     cash: 10000000,
@@ -66,7 +65,7 @@ const Index = () => {
     setMarketData({ 
       price: 100, volume: 0, change: 0, changePercent: 0, 
       marketSentiment: 0.5, volatilityIndex: 0.1, 
-      candlestickData: [], currentCandle: null, marketEvents: [], geminiAIStatus: null 
+      candlestickData: [], currentCandle: null, marketEvents: [], neuralNetworkStatus: null 
     });
     setPortfolio({ cash: 10000000, shares: 0, shortPosition: 0, totalValue: 10000000, pnl: 0, pnlPercent: 0 });
     setOrders([]);
@@ -77,9 +76,9 @@ const Index = () => {
     simulationRef.current?.executeTrade(type, quantity, price, isShort);
   };
 
-  const handleGeminiTrade = async () => {
-    if (simulationRef.current?.makeGeminiMarketDecision) {
-      await simulationRef.current.makeGeminiMarketDecision();
+  const handleNeuralNetworkTrade = async () => {
+    if (simulationRef.current?.makeNeuralNetworkMarketDecision) {
+      await simulationRef.current.makeNeuralNetworkMarketDecision();
     }
   };
 
@@ -106,10 +105,10 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-              AI-Powered Market Simulation
+              Neural Network Market Simulation
             </h1>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
-              Real-time trading with Gemini AI Market Maker • Shorts Enabled • $10M Capital
+              Real-time trading with Neural Network Market Maker • Shorts Enabled • $10M Capital
             </p>
           </div>
           
@@ -185,18 +184,22 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* AI Status */}
-        {marketData.geminiAIStatus && (
-          <Card className="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border-purple-700 p-4">
+        {/* Neural Network Status */}
+        {marketData.neuralNetworkStatus && (
+          <Card className="bg-gradient-to-r from-indigo-900/50 to-blue-900/50 border-indigo-700 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-white mb-1">Gemini AI Market Maker Status</h3>
+                <h3 className="text-lg font-semibold text-white mb-1">Neural Network Market Maker Status</h3>
                 <div className="text-sm text-gray-300">
-                  Capital: ${marketData.geminiAIStatus.capital?.toLocaleString()} • 
-                  Position: {marketData.geminiAIStatus.position?.toLocaleString()} shares
+                  Capital: ${marketData.neuralNetworkStatus.capital?.toLocaleString()} • 
+                  Position: {marketData.neuralNetworkStatus.position?.toLocaleString()} shares • 
+                  Type: {marketData.neuralNetworkStatus.marketMakerType}
                 </div>
               </div>
-              <div className="text-green-400 font-bold">ACTIVE</div>
+              <div className="flex gap-2 items-center">
+                <Brain className="text-indigo-400 w-5 h-5" />
+                <div className="text-indigo-400 font-bold">{marketData.neuralNetworkStatus.mood?.toUpperCase()}</div>
+              </div>
             </div>
           </Card>
         )}
@@ -220,7 +223,7 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <TradingInterface 
             onTrade={handleTrade}
-            onGeminiTrade={handleGeminiTrade}
+            onNeuralNetworkTrade={handleNeuralNetworkTrade}
             currentPrice={marketData.price}
             cash={portfolio.cash}
             shares={portfolio.shares}
