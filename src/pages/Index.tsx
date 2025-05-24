@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { TradingChart } from '@/components/TradingChart';
 import { CandlestickChart } from '@/components/CandlestickChart';
@@ -113,9 +114,20 @@ const Index = () => {
     simulationRef.current?.reset();
     setIsRunning(false);
     setMarketData({ 
-      price: 100, volume: 0, change: 0, changePercent: 0, 
-      marketSentiment: 0.5, volatilityIndex: 0.1, 
-      candlestickData: [], currentCandle: null, marketEvents: [], neuralNetworkStatus: null 
+      price: 100, 
+      volume: 0, 
+      change: 0, 
+      changePercent: 0, 
+      marketSentiment: 0.5, 
+      volatilityIndex: 0.1, 
+      candlestickData: [], 
+      currentCandle: null, 
+      marketEvents: [], 
+      neuralNetworkStatus: null,
+      businessCycle: null,
+      marketTrend: 0,
+      trendStrength: 0,
+      activePolicies: []
     });
     setPortfolio({ cash: startingCapital, shares: 0, shortPosition: 0, totalValue: startingCapital, pnl: 0, pnlPercent: 0 });
     setOrders([]);
