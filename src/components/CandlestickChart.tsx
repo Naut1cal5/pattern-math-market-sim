@@ -64,7 +64,7 @@ export const CandlestickChart = ({ data, currentCandle, currentPrice }: Candlest
     const candleWidth = Math.max(3, width / displayData.length - 2);
     const spacing = width / displayData.length;
 
-    // Draw candlesticks
+    // Draw candlesticks with filled green candles
     displayData.forEach((candle, index) => {
       const x = index * spacing + spacing / 2;
       const openY = height - ((candle.open - minPrice) / priceRange) * height;
@@ -85,15 +85,9 @@ export const CandlestickChart = ({ data, currentCandle, currentPrice }: Candlest
       ctx.lineTo(x, lowY);
       ctx.stroke();
 
-      // Draw body
-      if (isGreen) {
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 1;
-        ctx.strokeRect(x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
-      } else {
-        ctx.fillStyle = '#ef4444';
-        ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
-      }
+      // Draw body - NOW BOTH GREEN AND RED CANDLES ARE FILLED
+      ctx.fillStyle = isGreen ? '#10b981' : '#ef4444';
+      ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
 
       // Draw volume
       const volumeBarHeight = (candle.volume / maxVolume) * volumeHeight;
@@ -126,15 +120,15 @@ export const CandlestickChart = ({ data, currentCandle, currentPrice }: Candlest
   return (
     <Card className="bg-gray-800 border-gray-700 p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">1-Minute Candlestick Chart</h3>
+        <h3 className="text-lg font-semibold text-white">1-Minute Candlestick Chart - $7T Daily Volume</h3>
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 border border-green-500 rounded-sm"></div>
-            <span className="text-gray-400">Bullish</span>
+            <div className="w-3 h-3 bg-green-500 rounded-sm"></div>
+            <span className="text-gray-400">Bullish (Filled)</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-red-500 rounded-sm"></div>
-            <span className="text-gray-400">Bearish</span>
+            <span className="text-gray-400">Bearish (Filled)</span>
           </div>
         </div>
       </div>

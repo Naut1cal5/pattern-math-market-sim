@@ -50,6 +50,18 @@ const Index = () => {
     }
   }, []);
 
+  const formatLargeNumber = (num: number) => {
+    if (num >= 1000000000000) {
+      return `$${(num / 1000000000000).toFixed(2)}T`;
+    } else if (num >= 1000000000) {
+      return `$${(num / 1000000000).toFixed(2)}B`;
+    } else if (num >= 1000000) {
+      return `$${(num / 1000000).toFixed(2)}M`;
+    } else {
+      return `$${num.toLocaleString()}`;
+    }
+  };
+
   const handleStartStop = () => {
     if (isRunning) {
       simulationRef.current?.pause();
@@ -105,10 +117,10 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-              Neural Network Market Simulation
+              Trillion Dollar Market Simulation
             </h1>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
-              Real-time trading with Neural Network Market Maker • Shorts Enabled • $10M Capital
+              Real-time trading with $3T Capital • 500 Market Makers • $7T Daily Volume • Neural Network AI
             </p>
           </div>
           
@@ -150,7 +162,7 @@ const Index = () => {
           
           <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-4`}>
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Portfolio Value</div>
-            <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>${portfolio.totalValue.toLocaleString()}</div>
+            <div className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatLargeNumber(portfolio.totalValue)}</div>
             <div className={`text-sm ${portfolio.pnlPercent >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {portfolio.pnlPercent >= 0 ? '+' : ''}{portfolio.pnlPercent.toFixed(2)}%
             </div>
@@ -179,7 +191,7 @@ const Index = () => {
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Short Position</div>
             <div className="text-lg font-bold text-orange-400">{portfolio.shortPosition.toLocaleString()}</div>
             <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Worth ${(portfolio.shortPosition * marketData.price).toLocaleString()}
+              Worth {formatLargeNumber(portfolio.shortPosition * marketData.price)}
             </div>
           </Card>
         </div>
@@ -191,7 +203,7 @@ const Index = () => {
               <div>
                 <h3 className="text-lg font-semibold text-white mb-1">Neural Network Market Maker Status</h3>
                 <div className="text-sm text-gray-300">
-                  Capital: ${marketData.neuralNetworkStatus.capital?.toLocaleString()} • 
+                  Capital: {formatLargeNumber(marketData.neuralNetworkStatus.capital || 0)} • 
                   Position: {marketData.neuralNetworkStatus.position?.toLocaleString()} shares • 
                   Type: {marketData.neuralNetworkStatus.marketMakerType}
                 </div>
