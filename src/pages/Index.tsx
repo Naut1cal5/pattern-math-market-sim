@@ -8,11 +8,15 @@ import { MarketSentiment } from '@/components/MarketSentiment';
 import { MarketSimulation } from '@/lib/MarketSimulation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Play, Pause, RotateCcw, Activity, TrendingUp, TrendingDown, Moon, Sun, Brain } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Play, Pause, RotateCcw, Activity, TrendingUp, TrendingDown, Moon, Sun, Brain, DollarSign } from 'lucide-react';
 
 const Index = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [startingCapital, setStartingCapital] = useState(3000000000000); // $3T default
+  const [showCapitalInput, setShowCapitalInput] = useState(false);
   const [marketData, setMarketData] = useState({
     price: 100,
     volume: 0,
@@ -26,10 +30,10 @@ const Index = () => {
     neuralNetworkStatus: null
   });
   const [portfolio, setPortfolio] = useState({
-    cash: 10000000,
+    cash: 3000000000000,
     shares: 0,
     shortPosition: 0,
-    totalValue: 10000000,
+    totalValue: 3000000000000,
     pnl: 0,
     pnlPercent: 0
   });
@@ -48,6 +52,36 @@ const Index = () => {
         onPortfolioUpdate: setPortfolio
       });
     }
+  }, []);
+
+  // Hotkey event listener
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      // Only trigger if not typing in an input field
+      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
+      
+      switch (event.key.toLowerCase()) {
+        case 'b': // Buy Max
+          event.preventDefault();
+          simulationRef.current?.executeBuyMax();
+          break;
+        case 's': // Sell Max
+          event.preventDefault();
+          simulationRef.current?.executeSellMax();
+          break;
+        case 'h': // Short Max
+          event.preventDefault();
+          simulationRef.current?.executeShortMax();
+          break;
+        case 'c': // Cover Max
+          event.preventDefault();
+          simulationRef.current?.executeCoverMax();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
   }, []);
 
   const formatLargeNumber = (num: number) => {
@@ -79,9 +113,23 @@ const Index = () => {
       marketSentiment: 0.5, volatilityIndex: 0.1, 
       candlestickData: [], currentCandle: null, marketEvents: [], neuralNetworkStatus: null 
     });
-    setPortfolio({ cash: 10000000, shares: 0, shortPosition: 0, totalValue: 10000000, pnl: 0, pnlPercent: 0 });
+    setPortfolio({ cash: startingCapital, shares: 0, shortPosition: 0, totalValue: startingCapital, pnl: 0, pnlPercent: 0 });
     setOrders([]);
     setChartData([]);
+  };
+
+  const handleCapitalChange = () => {
+    if (simulationRef.current) {
+      simulationRef.current.setStartingCapital(startingCapital);
+      setPortfolio(prev => ({
+        ...prev,
+        cash: startingCapital,
+        totalValue: startingCapital,
+        pnl: 0,
+        pnlPercent: 0
+      }));
+    }
+    setShowCapitalInput(false);
   };
 
   const handleTrade = (type: 'buy' | 'sell', quantity: number, price: number, isShort: boolean = false) => {
@@ -120,11 +168,19 @@ const Index = () => {
               Trillion Dollar Market Simulation
             </h1>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
-              Real-time trading with $3T Capital • 500 Market Makers • $7T Daily Volume • Neural Network AI
+              Real-time trading with {formatLargeNumber(startingCapital)} Capital • 500 Market Makers • $7T Daily Volume • Neural Network AI
             </p>
           </div>
           
           <div className="flex items-center gap-3">
+            <Button
+              onClick={() => setShowCapitalInput(!showCapitalInput)}
+              variant="outline"
+              className={`border-gray-600 ${isDarkMode ? 'text-gray-300 hover:bg-gray-800' : 'text-gray-700 hover:bg-gray-200'}`}
+            >
+              <DollarSign className="w-4 h-4 mr-2" />
+              Set Capital
+            </Button>
             <Button
               onClick={() => setIsDarkMode(!isDarkMode)}
               variant="outline"
@@ -149,6 +205,56 @@ const Index = () => {
             </Button>
           </div>
         </div>
+
+        {/* Starting Capital Input */}
+        {showCapitalInput && (
+          <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-4`}>
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Label className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Starting Capital</Label>
+                <Input
+                  type="number"
+                  value={startingCapital}
+                  onChange={(e) => setStartingCapital(Number(e.target.value))}
+                  className={`${isDarkMode ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300'}`}
+                  placeholder="Enter starting capital"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={() => setStartingCapital(1000000000)} variant="outline" size="sm">$1B</Button>
+                <Button onClick={() => setStartingCapital(100000000000)} variant="outline" size="sm">$100B</Button>
+                <Button onClick={() => setStartingCapital(1000000000000)} variant="outline" size="sm">$1T</Button>
+                <Button onClick={() => setStartingCapital(3000000000000)} variant="outline" size="sm">$3T</Button>
+                <Button onClick={() => setStartingCapital(10000000000000)} variant="outline" size="sm">$10T</Button>
+              </div>
+              <Button onClick={handleCapitalChange} className="bg-green-600 hover:bg-green-700">
+                Apply
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Hotkeys Info */}
+        <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-3`}>
+          <div className="flex items-center justify-center gap-8 text-sm">
+            <div className="flex items-center gap-2">
+              <kbd className="px-2 py-1 bg-gray-700 rounded text-xs">B</kbd>
+              <span className="text-green-400">Buy Max</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <kbd className="px-2 py-1 bg-gray-700 rounded text-xs">S</kbd>
+              <span className="text-red-400">Sell Max</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <kbd className="px-2 py-1 bg-gray-700 rounded text-xs">H</kbd>
+              <span className="text-orange-400">Short Max</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <kbd className="px-2 py-1 bg-gray-700 rounded text-xs">C</kbd>
+              <span className="text-blue-400">Cover Max</span>
+            </div>
+          </div>
+        </Card>
 
         {/* Market Overview */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">

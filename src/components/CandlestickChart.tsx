@@ -64,7 +64,7 @@ export const CandlestickChart = ({ data, currentCandle, currentPrice }: Candlest
     const candleWidth = Math.max(3, width / displayData.length - 2);
     const spacing = width / displayData.length;
 
-    // Draw candlesticks with filled green candles
+    // Draw candlesticks with BOTH green and red candles filled
     displayData.forEach((candle, index) => {
       const x = index * spacing + spacing / 2;
       const openY = height - ((candle.open - minPrice) / priceRange) * height;
@@ -85,7 +85,7 @@ export const CandlestickChart = ({ data, currentCandle, currentPrice }: Candlest
       ctx.lineTo(x, lowY);
       ctx.stroke();
 
-      // Draw body - NOW BOTH GREEN AND RED CANDLES ARE FILLED
+      // Draw body - BOTH GREEN AND RED CANDLES ARE NOW FILLED
       ctx.fillStyle = isGreen ? '#10b981' : '#ef4444';
       ctx.fillRect(x - candleWidth / 2, bodyTop, candleWidth, bodyHeight);
 
