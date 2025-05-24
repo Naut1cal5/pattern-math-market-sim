@@ -22,6 +22,22 @@ interface OrderType {
   confidence?: number;
 }
 
+interface BusinessCycle {
+  phase: 'expansion' | 'peak' | 'contraction' | 'trough';
+  duration: number;
+  currentTime: number;
+  gdpGrowth: number;
+  inflation: number;
+  unemployment: number;
+}
+
+interface GovernmentPolicy {
+  type: 'monetary' | 'fiscal' | 'regulatory' | 'trade';
+  impact: number;
+  duration: number;
+  description: string;
+}
+
 export class MarketSimulation {
   private onPriceUpdate: (data: any) => void;
   private onOrderBookUpdate: (orders: OrderType[]) => void;
@@ -57,12 +73,25 @@ export class MarketSimulation {
   private candleStartTime: number = 0;
   private marketSentiment: number = 0.5;
   private volatilityIndex: number = 0.1;
-  private crashProbability: number = 0.02; // Increased from 0.001 for frequent events
-  private majorEventProbability: number = 0.01; // New: frequent major events
-  private dailyVolumeTarget: number = 7000000000000; // $7 trillion daily target
+  private crashProbability: number = 0.02;
+  private majorEventProbability: number = 0.01;
+  private dailyVolumeTarget: number = 7000000000000;
   private currentDailyVolume: number = 0;
   private dayStartTime: number = Date.now();
-  private startingCapital: number = 3000000000000; // Default $3T
+  private startingCapital: number = 3000000000000;
+
+  private businessCycle: BusinessCycle = {
+    phase: 'expansion',
+    duration: 2000,
+    currentTime: 0,
+    gdpGrowth: 0.025,
+    inflation: 0.02,
+    unemployment: 0.05
+  };
+  
+  private activePolicies: GovernmentPolicy[] = [];
+  private marketTrend: number = 0;
+  private trendStrength: number = 0;
 
   constructor({ onPriceUpdate, onOrderBookUpdate, onPortfolioUpdate }: {
     onPriceUpdate: (data: any) => void;
@@ -75,7 +104,6 @@ export class MarketSimulation {
     
     this.orderBook = { buys: [], sells: [] };
     
-    // Player starts with customizable capital
     this.portfolio = {
       cash: this.startingCapital,
       shares: 0,
@@ -98,7 +126,6 @@ export class MarketSimulation {
     this.updateCallbacks();
   }
 
-  // Method to set custom starting capital
   public setStartingCapital(amount: number) {
     this.startingCapital = amount;
     this.portfolio.cash = amount;
@@ -119,36 +146,33 @@ export class MarketSimulation {
   }
 
   private initializeTraders() {
-    // Enhanced retail traders with more capital
     for (let i = 0; i < 8000; i++) {
       this.traders.push({
         type: this.getRandomTraderType(),
         lastAction: 0,
-        cash: Math.random() * 50000000 + 5000000, // $5M to $55M
+        cash: Math.random() * 50000000 + 5000000,
         shares: Math.floor(Math.random() * 100000),
         shortPosition: 0,
         strategy: Math.random()
       });
     }
     
-    // Mega institutional players
     for (let i = 0; i < 300; i++) {
       this.traders.push({
         type: 'mega_institution',
         lastAction: 0,
-        cash: Math.random() * 100000000000 + 20000000000, // $20B to $120B
+        cash: Math.random() * 100000000000 + 20000000000,
         shares: Math.floor(Math.random() * 1000000),
         shortPosition: 0,
         strategy: Math.random()
       });
     }
     
-    // Professional day traders
     for (let i = 0; i < 3000; i++) {
       this.traders.push({
         type: 'pro_daytrader',
         lastAction: 0,
-        cash: Math.random() * 500000000 + 100000000, // $100M to $600M
+        cash: Math.random() * 500000000 + 100000000,
         shares: Math.floor(Math.random() * 200000),
         shortPosition: 0,
         strategy: Math.random()
@@ -157,12 +181,11 @@ export class MarketSimulation {
   }
 
   private initializeInstitutionalMarketMakers() {
-    // 500 institutional market makers with exactly $10B each
     for (let i = 0; i < 500; i++) {
       this.institutionalMarketMakers.push({
         type: 'institutional_market_maker',
         lastAction: 0,
-        cash: 10000000000, // Exactly $10B each
+        cash: 10000000000,
         shares: Math.floor(Math.random() * 2000000),
         shortPosition: 0,
         strategy: Math.random(),
@@ -172,14 +195,13 @@ export class MarketSimulation {
   }
 
   private initializeAITraders() {
-    // Enhanced AI hedge funds with massive capital
     const personalities = ['aggressive', 'conservative', 'momentum', 'contrarian', 'arbitrage', 'volatility_trader'];
     
     for (let i = 0; i < 25; i++) {
       this.aiTraders.push({
         type: 'ai_mega_fund',
         lastAction: 0,
-        cash: Math.random() * 500000000000 + 100000000000, // $100B to $600B
+        cash: Math.random() * 500000000000 + 100000000000,
         shares: Math.floor(Math.random() * 5000000),
         shortPosition: 0,
         strategy: Math.random(),
@@ -187,12 +209,11 @@ export class MarketSimulation {
       });
     }
     
-    // High-frequency trading AIs with substantial capital
     for (let i = 0; i < 15; i++) {
       this.aiTraders.push({
         type: 'ai_hft_titan',
         lastAction: 0,
-        cash: Math.random() * 200000000000 + 50000000000, // $50B to $250B
+        cash: Math.random() * 200000000000 + 50000000000,
         shares: Math.floor(Math.random() * 1000000),
         shortPosition: 0,
         strategy: Math.random(),
@@ -249,6 +270,17 @@ export class MarketSimulation {
     this.neuralNetworkTrader = null;
     this.currentDailyVolume = 0;
     this.dayStartTime = Date.now();
+    this.businessCycle = {
+      phase: 'expansion',
+      duration: 2000,
+      currentTime: 0,
+      gdpGrowth: 0.025,
+      inflation: 0.02,
+      unemployment: 0.05
+    };
+    this.activePolicies = [];
+    this.marketTrend = 0;
+    this.trendStrength = 0;
     
     try {
       this.neuralNetworkTrader = new NeuralNetworkTrader();
@@ -268,19 +300,20 @@ export class MarketSimulation {
 
     this.time++;
     
-    // Reset daily volume every 24 hours (simulated as 1440 time units)
     if (this.time % 1440 === 0) {
       this.currentDailyVolume = 0;
       this.dayStartTime = Date.now();
     }
     
+    this.updateBusinessCycle();
+    this.updateMarketTrends();
+    this.generateGovernmentPolicyEvents();
     this.updateMarketConditions();
-    this.generateHugeMarketEvents(); // New: frequent huge events
+    this.generateHugeMarketEvents();
     this.generateOrders();
     this.generateAIOrders();
     this.generateInstitutionalMarketMakerOrders();
     
-    // Neural Network Trader decisions - more frequent for market impact
     if (this.neuralNetworkTrader && this.time % 15 === 0) {
       try {
         const aiOrder = await this.neuralNetworkTrader.makeMarketDecision({
@@ -300,7 +333,7 @@ export class MarketSimulation {
       }
     }
     
-    this.executeRealisticTrades(); // New: realistic order matching
+    this.executeRealisticTrades();
     this.updateCandlestick();
     this.cleanOrderBook();
     this.updateMarketData();
@@ -309,9 +342,164 @@ export class MarketSimulation {
     setTimeout(() => this.simulate(), 100);
   }
 
-  // New: Generate frequent huge market events
+  private updateBusinessCycle() {
+    this.businessCycle.currentTime++;
+    
+    if (this.businessCycle.currentTime >= this.businessCycle.duration) {
+      this.transitionBusinessCycle();
+    }
+    
+    this.applyBusinessCycleEffects();
+  }
+
+  private transitionBusinessCycle() {
+    this.businessCycle.currentTime = 0;
+    
+    switch (this.businessCycle.phase) {
+      case 'expansion':
+        this.businessCycle.phase = 'peak';
+        this.businessCycle.gdpGrowth = 0.04;
+        this.businessCycle.inflation = 0.035;
+        this.businessCycle.unemployment = 0.03;
+        this.marketEvents.push(`📈 BUSINESS CYCLE: Economy reaches PEAK - GDP growth at 4%, inflation rising`);
+        break;
+        
+      case 'peak':
+        this.businessCycle.phase = 'contraction';
+        this.businessCycle.gdpGrowth = -0.02;
+        this.businessCycle.inflation = 0.015;
+        this.businessCycle.unemployment = 0.08;
+        this.marketEvents.push(`📉 BUSINESS CYCLE: Economy enters CONTRACTION - GDP falling, unemployment rising`);
+        break;
+        
+      case 'contraction':
+        this.businessCycle.phase = 'trough';
+        this.businessCycle.gdpGrowth = -0.03;
+        this.businessCycle.inflation = 0.005;
+        this.businessCycle.unemployment = 0.12;
+        this.marketEvents.push(`🕳️ BUSINESS CYCLE: Economy hits TROUGH - Maximum unemployment, deflation risk`);
+        break;
+        
+      case 'trough':
+        this.businessCycle.phase = 'expansion';
+        this.businessCycle.gdpGrowth = 0.025;
+        this.businessCycle.inflation = 0.02;
+        this.businessCycle.unemployment = 0.05;
+        this.marketEvents.push(`🚀 BUSINESS CYCLE: Economy begins EXPANSION - Recovery underway, growth resuming`);
+        break;
+    }
+  }
+
+  private applyBusinessCycleEffects() {
+    let cycleMultiplier = 1;
+    let sentimentImpact = 0;
+    
+    switch (this.businessCycle.phase) {
+      case 'expansion':
+        cycleMultiplier = 1 + (this.businessCycle.gdpGrowth * 0.5);
+        sentimentImpact = 0.001;
+        break;
+      case 'peak':
+        cycleMultiplier = 1 + (this.businessCycle.gdpGrowth * 0.3);
+        sentimentImpact = -0.0005;
+        break;
+      case 'contraction':
+        cycleMultiplier = 1 + (this.businessCycle.gdpGrowth * 0.8);
+        sentimentImpact = -0.002;
+        break;
+      case 'trough':
+        cycleMultiplier = 1 + (this.businessCycle.gdpGrowth * 0.6);
+        sentimentImpact = -0.001;
+        break;
+    }
+    
+    this.currentPrice *= cycleMultiplier;
+    this.marketSentiment = Math.max(0, Math.min(1, this.marketSentiment + sentimentImpact));
+  }
+
+  private updateMarketTrends() {
+    if (Math.random() < 0.005) {
+      this.marketTrend = (Math.random() - 0.5) * 2;
+      this.trendStrength = Math.random();
+      
+      const trendDirection = this.marketTrend > 0 ? 'BULLISH' : 'BEARISH';
+      const strength = this.trendStrength > 0.7 ? 'STRONG' : this.trendStrength > 0.4 ? 'MODERATE' : 'WEAK';
+      this.marketEvents.push(`📊 TREND SHIFT: ${strength} ${trendDirection} trend emerging`);
+    }
+    
+    if (this.trendStrength > 0.1) {
+      const trendImpact = this.marketTrend * this.trendStrength * 0.0001;
+      this.currentPrice *= (1 + trendImpact);
+    }
+  }
+
+  private generateGovernmentPolicyEvents() {
+    if (Math.random() < 0.003) {
+      const policyEvent = this.generateRandomPolicy();
+      this.activePolicies.push(policyEvent);
+      this.applyPolicyImpact(policyEvent);
+    }
+    
+    this.activePolicies = this.activePolicies.filter(policy => {
+      policy.duration--;
+      return policy.duration > 0;
+    });
+  }
+
+  private generateRandomPolicy(): GovernmentPolicy {
+    const policyTypes = ['monetary', 'fiscal', 'regulatory', 'trade'];
+    const type = policyTypes[Math.floor(Math.random() * policyTypes.length)] as any;
+    
+    let impact = (Math.random() - 0.5) * 0.3;
+    let duration = Math.floor(Math.random() * 200) + 100;
+    let description = '';
+    
+    switch (type) {
+      case 'monetary':
+        if (impact > 0) {
+          description = `FED CUTS RATES: ${Math.abs(impact * 100).toFixed(1)}% stimulus - Markets rally`;
+        } else {
+          description = `FED RAISES RATES: ${Math.abs(impact * 100).toFixed(1)}% hike - Tightening cycle begins`;
+        }
+        break;
+        
+      case 'fiscal':
+        if (impact > 0) {
+          description = `FISCAL STIMULUS: $${Math.abs(impact * 10).toFixed(1)}T spending package approved`;
+        } else {
+          description = `AUSTERITY MEASURES: Government cuts spending by $${Math.abs(impact * 5).toFixed(1)}T`;
+        }
+        break;
+        
+      case 'regulatory':
+        if (impact > 0) {
+          description = `DEREGULATION: Major industry regulations relaxed - Business optimism soars`;
+        } else {
+          description = `NEW REGULATIONS: Strict compliance requirements imposed - Costs rising`;
+        }
+        break;
+        
+      case 'trade':
+        if (impact > 0) {
+          description = `TRADE DEAL: Major international agreement signed - Global commerce boosted`;
+        } else {
+          description = `TRADE WAR: New tariffs imposed - International tensions escalate`;
+        }
+        break;
+    }
+    
+    return { type, impact, duration, description };
+  }
+
+  private applyPolicyImpact(policy: GovernmentPolicy) {
+    this.currentPrice *= (1 + policy.impact);
+    this.marketSentiment = Math.max(0, Math.min(1, this.marketSentiment + (policy.impact * 0.5)));
+    this.volatilityIndex = Math.max(0.01, Math.min(0.8, this.volatilityIndex + Math.abs(policy.impact * 0.3)));
+    this.volume *= (1 + Math.abs(policy.impact) * 5);
+    this.marketEvents.push(`🏛️ POLICY: ${policy.description}`);
+  }
+
   private generateHugeMarketEvents() {
-    // Major market events happen frequently
     if (Math.random() < this.majorEventProbability) {
       const majorEvents = [
         'central_bank_announcement', 'geopolitical_crisis', 'tech_breakthrough', 
@@ -322,7 +510,6 @@ export class MarketSimulation {
       this.applyMajorMarketEvent(eventType);
     }
 
-    // Extreme crashes and rallies
     if (Math.random() < this.crashProbability) {
       const extremeEvents = ['market_crash', 'flash_rally', 'liquidity_crisis', 'margin_call_tsunami'];
       const eventType = extremeEvents[Math.floor(Math.random() * extremeEvents.length)];
@@ -339,7 +526,7 @@ export class MarketSimulation {
 
     switch (eventType) {
       case 'central_bank_announcement':
-        priceMultiplier = isPositive ? 1.15 + Math.random() * 0.2 : 0.75 - Math.random() * 0.15; // ±15-35%
+        priceMultiplier = isPositive ? 1.15 + Math.random() * 0.2 : 0.75 - Math.random() * 0.15;
         volumeMultiplier = 8;
         sentimentChange = isPositive ? 0.3 : -0.4;
         volatilityChange = 0.5;
@@ -347,7 +534,7 @@ export class MarketSimulation {
         break;
         
       case 'geopolitical_crisis':
-        priceMultiplier = 0.8 - Math.random() * 0.25; // -20-45% drop
+        priceMultiplier = 0.8 - Math.random() * 0.25;
         volumeMultiplier = 12;
         sentimentChange = -0.6;
         volatilityChange = 0.7;
@@ -355,7 +542,7 @@ export class MarketSimulation {
         break;
         
       case 'tech_breakthrough':
-        priceMultiplier = 1.2 + Math.random() * 0.3; // +20-50% rally
+        priceMultiplier = 1.2 + Math.random() * 0.3;
         volumeMultiplier = 10;
         sentimentChange = 0.5;
         volatilityChange = 0.4;
@@ -363,7 +550,7 @@ export class MarketSimulation {
         break;
         
       case 'economic_data_shock':
-        priceMultiplier = isPositive ? 1.12 + Math.random() * 0.18 : 0.82 - Math.random() * 0.18; // ±12-30%
+        priceMultiplier = isPositive ? 1.12 + Math.random() * 0.18 : 0.82 - Math.random() * 0.18;
         volumeMultiplier = 6;
         sentimentChange = isPositive ? 0.25 : -0.35;
         volatilityChange = 0.3;
@@ -371,7 +558,7 @@ export class MarketSimulation {
         break;
         
       case 'currency_devaluation':
-        priceMultiplier = 0.85 - Math.random() * 0.2; // -15-35% drop
+        priceMultiplier = 0.85 - Math.random() * 0.2;
         volumeMultiplier = 7;
         sentimentChange = -0.4;
         volatilityChange = 0.5;
@@ -384,14 +571,13 @@ export class MarketSimulation {
     this.marketSentiment = Math.max(0, Math.min(1, this.marketSentiment + sentimentChange));
     this.volatilityIndex = Math.max(0.01, Math.min(0.9, this.volatilityIndex + volatilityChange));
     
-    // Trigger cascade of institutional reactions
     this.triggerInstitutionalReactions(priceMultiplier, eventType);
   }
 
   private applyExtremeMarketEvent(eventType: string) {
     switch (eventType) {
       case 'market_crash':
-        this.currentPrice *= (0.5 + Math.random() * 0.3); // 20-50% crash
+        this.currentPrice *= (0.5 + Math.random() * 0.3);
         this.volatilityIndex = 0.9;
         this.marketSentiment = 0.05;
         this.volume *= 20;
@@ -399,7 +585,7 @@ export class MarketSimulation {
         break;
         
       case 'flash_rally':
-        this.currentPrice *= (1.3 + Math.random() * 0.5); // 30-80% rally
+        this.currentPrice *= (1.3 + Math.random() * 0.5);
         this.volatilityIndex = 0.8;
         this.marketSentiment = 0.95;
         this.volume *= 15;
@@ -407,7 +593,7 @@ export class MarketSimulation {
         break;
         
       case 'liquidity_crisis':
-        this.currentPrice *= (0.6 + Math.random() * 0.2); // 20-40% drop
+        this.currentPrice *= (0.6 + Math.random() * 0.2);
         this.volatilityIndex = 0.95;
         this.marketSentiment = 0.1;
         this.volume *= 25;
@@ -417,9 +603,8 @@ export class MarketSimulation {
   }
 
   private triggerInstitutionalReactions(priceMultiplier: number, eventType: string) {
-    // Force institutional market makers to react dramatically
     this.institutionalMarketMakers.forEach(mm => {
-      if (Math.random() < 0.8) { // 80% react to major events
+      if (Math.random() < 0.8) {
         const reactionOrder = this.generateEventReactionOrder(mm, priceMultiplier, eventType);
         if (reactionOrder) {
           this.addOrder(reactionOrder);
@@ -430,21 +615,20 @@ export class MarketSimulation {
 
   private generateEventReactionOrder(marketMaker: TraderType, priceMultiplier: number, eventType: string): OrderType | null {
     const isMarketDown = priceMultiplier < 1;
-    let quantity = Math.floor(7000000000 / this.currentPrice); // $7B+ positions
+    let quantity = Math.floor(7000000000 / this.currentPrice);
     let isBuy = false;
     
-    // Institutional reactions based on event and personality
     switch (marketMaker.aiPersonality) {
       case 'contrarian_titan':
-        isBuy = isMarketDown; // Buy the dip, sell the rip
+        isBuy = isMarketDown;
         quantity *= 2;
         break;
       case 'momentum_hunter':
-        isBuy = !isMarketDown; // Follow the trend
+        isBuy = !isMarketDown;
         quantity *= 1.5;
         break;
       case 'volatility_master':
-        isBuy = Math.random() > 0.5; // Play volatility
+        isBuy = Math.random() > 0.5;
         quantity *= 3;
         break;
       default:
@@ -464,12 +648,10 @@ export class MarketSimulation {
     };
   }
 
-  // New: Realistic order matching with liquidity requirements
   private executeRealisticTrades() {
     let tradesExecuted = 0;
     this.volume = 0;
     
-    // Sort order books by price priority
     this.orderBook.buys.sort((a, b) => b.price - a.price);
     this.orderBook.sells.sort((a, b) => a.price - b.price);
     
@@ -477,11 +659,8 @@ export class MarketSimulation {
       const highestBuy = this.orderBook.buys[0];
       const lowestSell = this.orderBook.sells[0];
       
-      // Check if orders can cross (buy price >= sell price)
       if (highestBuy.price >= lowestSell.price) {
         const quantity = Math.min(highestBuy.quantity, lowestSell.quantity);
-        
-        // Price discovery: use the price of the resting order (first in book)
         const tradePrice = lowestSell.timestamp < highestBuy.timestamp ? lowestSell.price : highestBuy.price;
         
         this.previousPrice = this.currentPrice;
@@ -489,17 +668,14 @@ export class MarketSimulation {
         this.volume += quantity;
         this.currentDailyVolume += quantity * tradePrice;
         
-        // Market impact based on trade size
-        const marketImpact = Math.min(0.1, (quantity * tradePrice) / 10000000000); // Max 10% impact
+        const marketImpact = Math.min(0.1, (quantity * tradePrice) / 10000000000);
         if (highestBuy.trader === 'mega_player') {
           this.currentPrice *= (1 + marketImpact);
         }
         
-        // Partial fill handling
         highestBuy.quantity -= quantity;
         lowestSell.quantity -= quantity;
         
-        // Remove filled orders
         if (highestBuy.quantity <= 0) {
           this.orderBook.buys.shift();
         }
@@ -509,21 +685,18 @@ export class MarketSimulation {
         
         tradesExecuted++;
         
-        // Limit trades per cycle to prevent infinite loops
         if (tradesExecuted > 100) break;
       } else {
-        break; // No more matching orders
+        break;
       }
     }
     
-    // Market drift when no trades
     if (tradesExecuted === 0) {
       this.previousPrice = this.currentPrice;
       this.currentPrice *= (1 + (Math.random() - 0.5) * 0.0005);
     }
   }
 
-  // Enhanced trade execution with realistic market impact
   executeTrade(type: 'buy' | 'sell', quantity: number, price: number, isShort: boolean = false) {
     const totalCost = quantity * price;
     
@@ -556,13 +729,12 @@ export class MarketSimulation {
       }
     }
     
-    // Create multiple smaller orders for better market realism
-    const orderChunks = Math.min(10, Math.max(1, Math.floor(totalCost / 1000000000))); // Split large orders
+    const orderChunks = Math.min(10, Math.max(1, Math.floor(totalCost / 1000000000)));
     const chunkSize = Math.floor(quantity / orderChunks);
     
     for (let i = 0; i < orderChunks; i++) {
       const currentChunk = i === orderChunks - 1 ? quantity - (chunkSize * i) : chunkSize;
-      const chunkPrice = price * (1 + (Math.random() - 0.5) * 0.001); // Slight price variation
+      const chunkPrice = price * (1 + (Math.random() - 0.5) * 0.001);
       
       this.addOrder({
         type: type,
@@ -574,23 +746,20 @@ export class MarketSimulation {
       });
     }
     
-    // Massive market impact from trillion-dollar player trades
-    const marketImpact = Math.min(0.2, (totalCost) / 1000000000000); // Max 20% impact per trade
+    const marketImpact = Math.min(0.2, (totalCost) / 1000000000000);
     if (type === 'buy') {
       this.currentPrice *= (1 + marketImpact * 0.5);
     } else {
       this.currentPrice *= (1 - marketImpact * 0.5);
     }
     
-    // Log massive trades
-    if (totalCost > 50000000000) { // $50B+ trades
+    if (totalCost > 50000000000) {
       this.marketEvents.push(`🐋 MEGA WHALE: $${(totalCost / 1000000000).toFixed(1)}B ${type.toUpperCase()} moves market ${((this.currentPrice - this.previousPrice) / this.previousPrice * 100).toFixed(2)}%`);
     }
     
     this.updatePortfolio();
   }
 
-  // Max trading methods for hotkeys
   public executeBuyMax() {
     const maxQuantity = Math.floor(this.portfolio.cash / this.currentPrice);
     if (maxQuantity > 0) {
@@ -644,6 +813,21 @@ export class MarketSimulation {
     
     let isBuy = Math.random() > 0.5;
     let isShort = false;
+    
+    switch (this.businessCycle.phase) {
+      case 'expansion':
+        isBuy = Math.random() < 0.65;
+        break;
+      case 'peak':
+        isBuy = Math.random() < 0.45;
+        break;
+      case 'contraction':
+        isBuy = Math.random() < 0.35;
+        break;
+      case 'trough':
+        isBuy = Math.random() < 0.60;
+        break;
+    }
     
     switch (marketMaker.aiPersonality) {
       case 'aggressive_whale':
@@ -986,7 +1170,7 @@ export class MarketSimulation {
   }
 
   private updateCandlestick() {
-    if (Date.now() - this.candleStartTime >= 60000) {
+    if (Date.now() - this.candleStartTime >= 2000) {
       if (this.currentCandle) {
         this.candlestickData.push(this.currentCandle);
         this.candlestickData = this.candlestickData.slice(-200);
@@ -1047,11 +1231,14 @@ export class MarketSimulation {
       candlestickData: this.candlestickData,
       currentCandle: this.currentCandle,
       marketEvents: this.marketEvents.slice(-10),
-      neuralNetworkStatus: this.neuralNetworkTrader?.getStatus()
+      neuralNetworkStatus: this.neuralNetworkTrader?.getStatus(),
+      businessCycle: this.businessCycle,
+      marketTrend: this.marketTrend,
+      trendStrength: this.trendStrength,
+      activePolicies: this.activePolicies
     });
   }
 
-  // Neural Network method for strategy trading
   async makeNeuralNetworkMarketDecision() {
     if (this.neuralNetworkTrader) {
       try {

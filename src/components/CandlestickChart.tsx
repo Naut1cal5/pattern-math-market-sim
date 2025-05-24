@@ -120,7 +120,7 @@ export const CandlestickChart = ({ data, currentCandle, currentPrice }: Candlest
   return (
     <Card className="bg-gray-800 border-gray-700 p-4">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white">1-Minute Candlestick Chart - $7T Daily Volume</h3>
+        <h3 className="text-lg font-semibold text-white">2-Second Candlestick Chart - $7T Daily Volume</h3>
         <div className="flex items-center gap-4 text-sm">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-green-500 rounded-sm"></div>

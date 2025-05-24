@@ -27,7 +27,11 @@ const Index = () => {
     candlestickData: [],
     currentCandle: null,
     marketEvents: [],
-    neuralNetworkStatus: null
+    neuralNetworkStatus: null,
+    businessCycle: null,
+    marketTrend: 0,
+    trendStrength: 0,
+    activePolicies: []
   });
   const [portfolio, setPortfolio] = useState({
     cash: 3000000000000,
@@ -158,6 +162,24 @@ const Index = () => {
     return 'Extreme Greed';
   };
 
+  const getBusinessCycleIcon = (phase: string) => {
+    switch (phase) {
+      case 'expansion': return '📈';
+      case 'peak': return '🏔️';
+      case 'contraction': return '📉';
+      case 'trough': return '🕳️';
+      default: return '📊';
+    }
+  };
+
+  const getTrendIcon = (trend: number) => {
+    if (trend > 0.3) return '🚀';
+    if (trend > 0) return '📈';
+    if (trend < -0.3) return '💥';
+    if (trend < 0) return '📉';
+    return '➡️';
+  };
+
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} p-4`}>
       <div className="max-w-7xl mx-auto space-y-4">
@@ -168,7 +190,7 @@ const Index = () => {
               Trillion Dollar Market Simulation
             </h1>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
-              Real-time trading with {formatLargeNumber(startingCapital)} Capital • 500 Market Makers • $7T Daily Volume • Neural Network AI
+              Real-time trading with {formatLargeNumber(startingCapital)} Capital • 500 Market Makers • $7T Daily Volume • Neural Network AI • Business Cycles
             </p>
           </div>
           
@@ -232,6 +254,57 @@ const Index = () => {
               </Button>
             </div>
           </Card>
+        )}
+
+        {/* Business Cycle & Market Trend Info */}
+        {marketData.businessCycle && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className={`${isDarkMode ? 'bg-blue-900/50 border-blue-700' : 'bg-blue-100 border-blue-300'} p-4`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Business Cycle</div>
+                  <div className="text-xl font-bold text-white flex items-center gap-2">
+                    {getBusinessCycleIcon(marketData.businessCycle.phase)}
+                    {marketData.businessCycle.phase.toUpperCase()}
+                  </div>
+                  <div className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`}>
+                    GDP: {(marketData.businessCycle.gdpGrowth * 100).toFixed(1)}% | 
+                    Inflation: {(marketData.businessCycle.inflation * 100).toFixed(1)}% | 
+                    Unemployment: {(marketData.businessCycle.unemployment * 100).toFixed(1)}%
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className={`${isDarkMode ? 'bg-purple-900/50 border-purple-700' : 'bg-purple-100 border-purple-300'} p-4`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className={`text-sm ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>Market Trend</div>
+                  <div className="text-xl font-bold text-white flex items-center gap-2">
+                    {getTrendIcon(marketData.marketTrend)}
+                    {marketData.marketTrend > 0 ? 'BULLISH' : marketData.marketTrend < 0 ? 'BEARISH' : 'NEUTRAL'}
+                  </div>
+                  <div className={`text-sm ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>
+                    Strength: {(marketData.trendStrength * 100).toFixed(0)}%
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <Card className={`${isDarkMode ? 'bg-orange-900/50 border-orange-700' : 'bg-orange-100 border-orange-300'} p-4`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className={`text-sm ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>Active Policies</div>
+                  <div className="text-xl font-bold text-white">
+                    {marketData.activePolicies?.length || 0}
+                  </div>
+                  <div className={`text-sm ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`}>
+                    Government Interventions
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
         )}
 
         {/* Hotkeys Info */}
@@ -318,6 +391,20 @@ const Index = () => {
                 <Brain className="text-indigo-400 w-5 h-5" />
                 <div className="text-indigo-400 font-bold">{marketData.neuralNetworkStatus.mood?.toUpperCase()}</div>
               </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Active Government Policies */}
+        {marketData.activePolicies && marketData.activePolicies.length > 0 && (
+          <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-4`}>
+            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>Active Government Policies</h3>
+            <div className="space-y-2">
+              {marketData.activePolicies.slice(0, 3).map((policy, index) => (
+                <div key={index} className="text-sm p-2 bg-blue-900/20 text-blue-300 rounded border-l-4 border-blue-500">
+                  🏛️ {policy.description} (Duration: {policy.duration} units)
+                </div>
+              ))}
             </div>
           </Card>
         )}
