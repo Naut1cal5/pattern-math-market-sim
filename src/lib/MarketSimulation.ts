@@ -38,6 +38,16 @@ interface GovernmentPolicy {
   description: string;
 }
 
+interface MarketMakerCollective {
+  currentDirection: 'bullish' | 'bearish' | 'accumulation' | 'distribution';
+  trendStrength: number;
+  coordinatedAction: 'buy_pressure' | 'sell_pressure' | 'volatility_creation' | 'trend_continuation';
+  profitTarget: number;
+  currentProfits: number;
+  trendDuration: number;
+  nextTrendChange: number;
+}
+
 export class MarketSimulation {
   private onPriceUpdate: (data: any) => void;
   private onOrderBookUpdate: (orders: OrderType[]) => void;
@@ -92,6 +102,20 @@ export class MarketSimulation {
   private activePolicies: GovernmentPolicy[] = [];
   private marketTrend: number = 0;
   private trendStrength: number = 0;
+
+  // New market maker collective properties
+  private marketMakerCollective: MarketMakerCollective = {
+    currentDirection: 'bullish',
+    trendStrength: 0.7,
+    coordinatedAction: 'buy_pressure',
+    profitTarget: 50000000000, // $50B profit target
+    currentProfits: 0,
+    trendDuration: 0,
+    nextTrendChange: Math.floor(Math.random() * 800) + 400 // 400-1200 time units
+  };
+
+  private priceHistory: number[] = [];
+  private trendMomentum: number = 0;
 
   constructor({ onPriceUpdate, onOrderBookUpdate, onPortfolioUpdate }: {
     onPriceUpdate: (data: any) => void;
@@ -282,6 +306,20 @@ export class MarketSimulation {
     this.marketTrend = 0;
     this.trendStrength = 0;
     
+    // Reset market maker collective
+    this.marketMakerCollective = {
+      currentDirection: 'bullish',
+      trendStrength: 0.7,
+      coordinatedAction: 'buy_pressure',
+      profitTarget: 50000000000,
+      currentProfits: 0,
+      trendDuration: 0,
+      nextTrendChange: Math.floor(Math.random() * 800) + 400
+    };
+    
+    this.priceHistory = [];
+    this.trendMomentum = 0;
+    
     try {
       this.neuralNetworkTrader = new NeuralNetworkTrader();
     } catch (error) {
@@ -305,6 +343,13 @@ export class MarketSimulation {
       this.dayStartTime = Date.now();
     }
     
+    // Update price history for trend analysis
+    this.priceHistory.push(this.currentPrice);
+    if (this.priceHistory.length > 100) {
+      this.priceHistory.shift();
+    }
+    
+    this.updateMarketMakerCollective();
     this.updateBusinessCycle();
     this.updateMarketTrends();
     this.generateGovernmentPolicyEvents();
@@ -312,7 +357,7 @@ export class MarketSimulation {
     this.generateHugeMarketEvents();
     this.generateOrders();
     this.generateAIOrders();
-    this.generateInstitutionalMarketMakerOrders();
+    this.generateCoordinatedMarketMakerOrders();
     
     if (this.neuralNetworkTrader && this.time % 15 === 0) {
       try {
@@ -340,6 +385,221 @@ export class MarketSimulation {
     this.updateCallbacks();
     
     setTimeout(() => this.simulate(), 100);
+  }
+
+  private updateMarketMakerCollective() {
+    this.marketMakerCollective.trendDuration++;
+    
+    // Check if it's time to change trend direction
+    if (this.marketMakerCollective.trendDuration >= this.marketMakerCollective.nextTrendChange) {
+      this.changeTrendDirection();
+    }
+    
+    // Update trend momentum based on collective action
+    switch (this.marketMakerCollective.coordinatedAction) {
+      case 'buy_pressure':
+        this.trendMomentum += 0.02 * this.marketMakerCollective.trendStrength;
+        break;
+      case 'sell_pressure':
+        this.trendMomentum -= 0.02 * this.marketMakerCollective.trendStrength;
+        break;
+      case 'volatility_creation':
+        this.trendMomentum += (Math.random() - 0.5) * 0.04 * this.marketMakerCollective.trendStrength;
+        break;
+      case 'trend_continuation':
+        this.trendMomentum += this.trendMomentum > 0 ? 0.01 : -0.01;
+        break;
+    }
+    
+    // Cap trend momentum
+    this.trendMomentum = Math.max(-0.5, Math.min(0.5, this.trendMomentum));
+    
+    // Apply trend momentum to price
+    this.currentPrice *= (1 + this.trendMomentum * 0.1);
+    
+    // Calculate profits for market makers
+    const priceChange = this.currentPrice - (this.priceHistory[0] || this.currentPrice);
+    const profitFromTrend = Math.abs(priceChange) * 1000000; // Profit calculation
+    this.marketMakerCollective.currentProfits += profitFromTrend;
+  }
+
+  private changeTrendDirection() {
+    const directions: ('bullish' | 'bearish' | 'accumulation' | 'distribution')[] = ['bullish', 'bearish', 'accumulation', 'distribution'];
+    const actions: ('buy_pressure' | 'sell_pressure' | 'volatility_creation' | 'trend_continuation')[] = ['buy_pressure', 'sell_pressure', 'volatility_creation', 'trend_continuation'];
+    
+    // Choose new direction (avoid same direction)
+    let newDirection = directions[Math.floor(Math.random() * directions.length)];
+    while (newDirection === this.marketMakerCollective.currentDirection && Math.random() < 0.7) {
+      newDirection = directions[Math.floor(Math.random() * directions.length)];
+    }
+    
+    this.marketMakerCollective.currentDirection = newDirection;
+    this.marketMakerCollective.trendStrength = 0.6 + Math.random() * 0.4; // 60-100% strength
+    this.marketMakerCollective.trendDuration = 0;
+    this.marketMakerCollective.nextTrendChange = Math.floor(Math.random() * 1000) + 500; // 500-1500 time units
+    
+    // Set coordinated action based on direction
+    switch (newDirection) {
+      case 'bullish':
+        this.marketMakerCollective.coordinatedAction = 'buy_pressure';
+        this.trendMomentum = 0.1;
+        break;
+      case 'bearish':
+        this.marketMakerCollective.coordinatedAction = 'sell_pressure';
+        this.trendMomentum = -0.1;
+        break;
+      case 'accumulation':
+        this.marketMakerCollective.coordinatedAction = 'buy_pressure';
+        this.trendMomentum = 0.05;
+        break;
+      case 'distribution':
+        this.marketMakerCollective.coordinatedAction = 'sell_pressure';
+        this.trendMomentum = -0.05;
+        break;
+    }
+    
+    const trendMessages = {
+      bullish: '🚀 MARKET MAKERS: Coordinated bullish campaign initiated - massive buying pressure',
+      bearish: '🐻 MARKET MAKERS: Bear raid underway - coordinated selling pressure',
+      accumulation: '📈 MARKET MAKERS: Accumulation phase - smart money buying dips',
+      distribution: '📉 MARKET MAKERS: Distribution phase - taking profits at highs'
+    };
+    
+    this.marketEvents.push(trendMessages[newDirection]);
+  }
+
+  private generateCoordinatedMarketMakerOrders() {
+    // Market makers coordinate their actions based on collective strategy
+    const coordinationStrength = this.marketMakerCollective.trendStrength;
+    
+    this.institutionalMarketMakers.forEach((marketMaker, index) => {
+      if (this.time - marketMaker.lastAction < 3) return; // Faster execution
+      
+      if (Math.random() < 0.9) { // Very high activity rate
+        const order = this.generateCoordinatedMarketMakerOrder(marketMaker, index);
+        if (order) {
+          this.addOrder(order);
+          marketMaker.lastAction = this.time;
+        }
+      }
+    });
+  }
+
+  private generateCoordinatedMarketMakerOrder(marketMaker: TraderType, index: number): OrderType | null {
+    const collective = this.marketMakerCollective;
+    const baseVariation = Math.min(0.02, this.volatilityIndex * 0.5); // Tighter spreads
+    let price = this.currentPrice * (1 + (Math.random() - 0.5) * baseVariation);
+    
+    // Large position sizes - market makers have deep pockets
+    const minPositionValue = 15000000000; // $15B minimum
+    let quantity = Math.floor(minPositionValue / price) + Math.floor(Math.random() * (minPositionValue) / price);
+    
+    let isBuy = Math.random() > 0.5;
+    let isShort = false;
+    
+    // Coordinate based on collective direction
+    const coordinationFactor = Math.random() < collective.trendStrength ? 1 : 0;
+    
+    if (coordinationFactor) {
+      switch (collective.coordinatedAction) {
+        case 'buy_pressure':
+          isBuy = Math.random() < 0.85; // Strong buy bias
+          quantity *= 1.5; // Larger orders
+          break;
+        case 'sell_pressure':
+          isBuy = Math.random() < 0.15; // Strong sell bias
+          quantity *= 1.5;
+          break;
+        case 'volatility_creation':
+          // Create volatility with alternating large orders
+          isBuy = (index + this.time) % 2 === 0;
+          quantity *= 2;
+          break;
+        case 'trend_continuation':
+          // Follow the existing momentum
+          if (this.trendMomentum > 0) {
+            isBuy = Math.random() < 0.75;
+          } else {
+            isBuy = Math.random() < 0.25;
+          }
+          break;
+      }
+    }
+    
+    // Market maker personalities still matter but less so during coordination
+    const personalityWeight = 1 - (collective.trendStrength * 0.7);
+    
+    switch (marketMaker.aiPersonality) {
+      case 'aggressive_whale':
+        quantity *= 2.5;
+        if (Math.random() < personalityWeight) {
+          isBuy = this.volatilityIndex > 0.3 ? Math.random() < 0.8 : isBuy;
+        }
+        break;
+        
+      case 'momentum_hunter':
+        quantity *= 2;
+        if (Math.random() < personalityWeight) {
+          if (this.currentPrice > this.previousPrice) {
+            isBuy = Math.random() < 0.85;
+          } else {
+            isBuy = Math.random() < 0.15;
+          }
+        }
+        break;
+        
+      case 'contrarian_titan':
+        quantity *= 2;
+        if (Math.random() < personalityWeight) {
+          // Only contrarian during low coordination
+          isBuy = collective.coordinatedAction === 'sell_pressure' && Math.random() < 0.3;
+        }
+        break;
+        
+      case 'volatility_master':
+        if (this.volatilityIndex > 0.2) {
+          quantity *= 3;
+        }
+        break;
+    }
+    
+    // Ensure market makers always have enough capital
+    if (isBuy && marketMaker.cash < price * quantity) {
+      marketMaker.cash += 10000000000; // Add more capital
+      quantity = Math.floor(marketMaker.cash * 0.8 / price); // Use 80% of capital
+    } else if (!isBuy && !isShort && marketMaker.shares < quantity) {
+      if (Math.random() < 0.6) {
+        isShort = true; // Market makers can short
+      } else {
+        quantity = marketMaker.shares;
+      }
+    }
+    
+    if (quantity <= 0) return null;
+    
+    // Update market maker's position
+    if (isBuy) {
+      marketMaker.cash -= quantity * price;
+      marketMaker.shares += quantity;
+    } else {
+      if (isShort) {
+        marketMaker.cash += quantity * price;
+        marketMaker.shortPosition = (marketMaker.shortPosition || 0) + quantity;
+      } else {
+        marketMaker.cash += quantity * price;
+        marketMaker.shares -= quantity;
+      }
+    }
+    
+    return {
+      type: isBuy ? 'buy' : 'sell',
+      price: price,
+      quantity: quantity,
+      trader: `coordinated_mm_${marketMaker.aiPersonality}`,
+      timestamp: this.time,
+      isShort: isShort,
+      isAI: true
+    };
   }
 
   private updateBusinessCycle() {
@@ -786,126 +1046,6 @@ export class MarketSimulation {
     }
   }
 
-  private generateInstitutionalMarketMakerOrders() {
-    this.institutionalMarketMakers.forEach(marketMaker => {
-      if (this.time - marketMaker.lastAction < 8) return;
-      
-      if (Math.random() < 0.7) {
-        const order = this.generateMarketMakerOrder(marketMaker);
-        if (order) {
-          this.addOrder(order);
-          marketMaker.lastAction = this.time;
-          
-          if (order.quantity * order.price > 1000000000) {
-            this.marketEvents.push(`INSTITUTIONAL MM: ${marketMaker.aiPersonality} places $${(order.quantity * order.price / 1000000000).toFixed(1)}B ${order.type.toUpperCase()} order`);
-          }
-        }
-      }
-    });
-  }
-
-  private generateMarketMakerOrder(marketMaker: TraderType): OrderType | null {
-    const baseVariation = this.volatilityIndex;
-    let price = this.currentPrice * (1 + (Math.random() - 0.5) * baseVariation);
-    
-    const minPositionValue = 5000000000;
-    let quantity = Math.floor(minPositionValue / price) + Math.floor(Math.random() * (minPositionValue * 2) / price);
-    
-    let isBuy = Math.random() > 0.5;
-    let isShort = false;
-    
-    switch (this.businessCycle.phase) {
-      case 'expansion':
-        isBuy = Math.random() < 0.65;
-        break;
-      case 'peak':
-        isBuy = Math.random() < 0.45;
-        break;
-      case 'contraction':
-        isBuy = Math.random() < 0.35;
-        break;
-      case 'trough':
-        isBuy = Math.random() < 0.60;
-        break;
-    }
-    
-    switch (marketMaker.aiPersonality) {
-      case 'aggressive_whale':
-        quantity *= 3;
-        if (this.volatilityIndex > 0.3) {
-          isBuy = Math.random() < 0.8;
-        }
-        break;
-        
-      case 'conservative_institutional':
-        quantity *= 1.2;
-        if (this.marketSentiment > 0.7) {
-          isBuy = Math.random() < 0.7;
-        } else if (this.marketSentiment < 0.3) {
-          isBuy = Math.random() < 0.2;
-        }
-        break;
-        
-      case 'momentum_hunter':
-        quantity *= 2;
-        if (this.currentPrice > this.previousPrice) {
-          isBuy = Math.random() < 0.85;
-        } else {
-          isBuy = Math.random() < 0.15;
-        }
-        break;
-        
-      case 'contrarian_titan':
-        quantity *= 2.5;
-        isBuy = this.marketSentiment < 0.3;
-        break;
-        
-      case 'volatility_master':
-        if (this.volatilityIndex > 0.4) {
-          quantity *= 4;
-          isBuy = Math.random() < 0.5;
-        }
-        break;
-        
-      case 'arbitrage_king':
-        quantity *= 1.5;
-        break;
-    }
-    
-    if (!isBuy && marketMaker.shares <= quantity * 0.5 && Math.random() < 0.4) {
-      isShort = true;
-    }
-    
-    const totalCost = quantity * price;
-    if (isBuy && marketMaker.cash < totalCost) {
-      quantity = Math.floor(marketMaker.cash / price);
-    } else if (!isBuy && !isShort && marketMaker.shares < quantity) {
-      quantity = marketMaker.shares;
-    }
-    
-    if (quantity <= 0 || totalCost < minPositionValue) return null;
-    
-    return {
-      type: isBuy ? 'buy' : 'sell',
-      price: price,
-      quantity: quantity,
-      trader: `mm_${marketMaker.aiPersonality}`,
-      timestamp: this.time,
-      isShort: isShort,
-      isAI: true
-    };
-  }
-
-  private updateMarketConditions() {
-    this.marketSentiment += (Math.random() - 0.5) * 0.02;
-    this.marketSentiment = Math.max(0, Math.min(1, this.marketSentiment));
-    
-    this.volatilityIndex += (Math.random() - 0.5) * 0.005;
-    this.volatilityIndex = Math.max(0.01, Math.min(0.8, this.volatilityIndex));
-    
-    this.crashProbability = 0.0001 + (this.volatilityIndex * 0.01);
-  }
-
   private generateOrders() {
     this.traders.forEach(trader => {
       if (this.time - trader.lastAction < this.getActionDelay(trader.type)) return;
@@ -1216,6 +1356,16 @@ export class MarketSimulation {
     this.onOrderBookUpdate(orders);
   }
 
+  private updateMarketConditions() {
+    this.marketSentiment += (Math.random() - 0.5) * 0.02;
+    this.marketSentiment = Math.max(0, Math.min(1, this.marketSentiment));
+    
+    this.volatilityIndex += (Math.random() - 0.5) * 0.005;
+    this.volatilityIndex = Math.max(0.01, Math.min(0.8, this.volatilityIndex));
+    
+    this.crashProbability = 0.0001 + (this.volatilityIndex * 0.01);
+  }
+
   private updateMarketData() {
     const change = this.currentPrice - this.previousPrice;
     const changePercent = (change / this.previousPrice) * 100;
@@ -1235,7 +1385,8 @@ export class MarketSimulation {
       businessCycle: this.businessCycle,
       marketTrend: this.marketTrend,
       trendStrength: this.trendStrength,
-      activePolicies: this.activePolicies
+      activePolicies: this.activePolicies,
+      marketMakerCollective: this.marketMakerCollective
     });
   }
 
