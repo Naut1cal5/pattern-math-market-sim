@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { TradingChart } from '@/components/TradingChart';
 import { CandlestickChart } from '@/components/CandlestickChart';
@@ -11,13 +10,15 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Play, Pause, RotateCcw, Activity, TrendingUp, TrendingDown, Moon, Sun, Brain, DollarSign } from 'lucide-react';
+import { Play, Pause, RotateCcw, Activity, TrendingUp, TrendingDown, Moon, Sun, Brain, DollarSign, Crown } from 'lucide-react';
 
 const Index = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [startingCapital, setStartingCapital] = useState(3000000000000); // $3T default
   const [showCapitalInput, setShowCapitalInput] = useState(false);
+  const [marketMakerMode, setMarketMakerMode] = useState(false);
+  
   const [marketData, setMarketData] = useState({
     price: 100,
     volume: 0,
@@ -149,12 +150,24 @@ const Index = () => {
   };
 
   const handleTrade = (type: 'buy' | 'sell', quantity: number, price: number, isShort: boolean = false) => {
+    if (marketMakerMode && simulationRef.current) {
+      // In market maker mode, set market manipulation
+      const direction = (type === 'buy' && !isShort) || (type === 'sell' && isShort) ? 'up' : 'down';
+      simulationRef.current.setMarketManipulation(direction, 10 + Math.floor(Math.random() * 11)); // 10-20 candles
+    }
     simulationRef.current?.executeTrade(type, quantity, price, isShort);
   };
 
   const handleNeuralNetworkTrade = async () => {
     if (simulationRef.current?.makeNeuralNetworkMarketDecision) {
       await simulationRef.current.makeNeuralNetworkMarketDecision();
+    }
+  };
+
+  const handleMarketMakerToggle = (enabled: boolean) => {
+    setMarketMakerMode(enabled);
+    if (simulationRef.current) {
+      simulationRef.current.setMarketMakerMode(enabled);
     }
   };
 
@@ -200,9 +213,11 @@ const Index = () => {
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
               Trillion Dollar Market Simulation
+              {marketMakerMode && <Crown className="inline w-6 h-6 ml-2 text-yellow-400" />}
             </h1>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
               Real-time trading with {formatLargeNumber(startingCapital)} Capital • 500 Market Makers • $7T Daily Volume • Neural Network AI • Business Cycles
+              {marketMakerMode && <span className="text-yellow-400 font-bold"> • MARKET MAKER MODE ACTIVE</span>}
             </p>
           </div>
           
@@ -239,6 +254,22 @@ const Index = () => {
             </Button>
           </div>
         </div>
+
+        {/* Market Maker Mode Alert */}
+        {marketMakerMode && (
+          <Card className="bg-gradient-to-r from-yellow-900/50 to-orange-900/50 border border-yellow-600 p-4">
+            <div className="flex items-center gap-3">
+              <Crown className="w-6 h-6 text-yellow-400" />
+              <div>
+                <h3 className="text-lg font-bold text-yellow-400">Market Maker Mode Active</h3>
+                <p className="text-yellow-200 text-sm">
+                  You now control the market! Your trades will force price movement in that direction for 10-20 candles, 
+                  overriding all market sentiment, news events, and business cycles.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
 
         {/* Starting Capital Input */}
         {showCapitalInput && (
@@ -445,6 +476,8 @@ const Index = () => {
             cash={portfolio.cash}
             shares={portfolio.shares}
             shortPosition={portfolio.shortPosition}
+            marketMakerMode={marketMakerMode}
+            onMarketMakerToggle={handleMarketMakerToggle}
           />
           <Portfolio portfolio={portfolio} marketData={marketData} />
         </div>

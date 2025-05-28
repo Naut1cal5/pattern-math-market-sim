@@ -6,15 +6,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { TrendingUp, TrendingDown, Zap, Target, Brain } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { TrendingUp, TrendingDown, Zap, Target, Brain, Crown } from 'lucide-react';
 
-export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPosition = 0, onNeuralNetworkTrade }: {
+export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPosition = 0, onNeuralNetworkTrade, marketMakerMode, onMarketMakerToggle }: {
   onTrade: (type: 'buy' | 'sell', quantity: number, price: number, isShort?: boolean) => void;
   currentPrice: number;
   cash: number;
   shares: number;
   shortPosition?: number;
   onNeuralNetworkTrade?: () => Promise<void>;
+  marketMakerMode?: boolean;
+  onMarketMakerToggle?: (enabled: boolean) => void;
 }) => {
   const [quantity, setQuantity] = useState(100);
   const [price, setPrice] = useState(currentPrice);
@@ -88,7 +91,32 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPos
 
   return (
     <Card className="bg-gray-800 border-gray-700 p-4">
-      <h3 className="text-lg font-semibold text-white mb-4">Advanced Trading Interface</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-white">Advanced Trading Interface</h3>
+        
+        {/* Market Maker Mode Toggle */}
+        <div className="flex items-center gap-3">
+          <Crown className={`w-5 h-5 ${marketMakerMode ? 'text-yellow-400' : 'text-gray-500'}`} />
+          <Label className="text-gray-300 text-sm">Market Maker Mode</Label>
+          <Switch
+            checked={marketMakerMode || false}
+            onCheckedChange={onMarketMakerToggle}
+            className="data-[state=checked]:bg-yellow-600"
+          />
+        </div>
+      </div>
+
+      {marketMakerMode && (
+        <div className="mb-4 p-3 bg-gradient-to-r from-yellow-900/50 to-orange-900/50 border border-yellow-600 rounded">
+          <div className="flex items-center gap-2 mb-2">
+            <Crown className="w-4 h-4 text-yellow-400" />
+            <span className="text-yellow-400 font-bold text-sm">MARKET MAKER MODE ACTIVE</span>
+          </div>
+          <p className="text-yellow-200 text-xs">
+            Your trades will control market direction for 10-20 candles, overriding all market forces!
+          </p>
+        </div>
+      )}
       
       <Tabs defaultValue="manual" className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-gray-700">
@@ -141,18 +169,20 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPos
             <Button 
               onClick={handleBuy}
               disabled={quantity > maxBuyQuantity || quantity <= 0}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className={`${marketMakerMode ? 'bg-yellow-600 hover:bg-yellow-700 border-2 border-yellow-400' : 'bg-green-600 hover:bg-green-700'} text-white`}
             >
               <TrendingUp className="w-4 h-4 mr-2" />
+              {marketMakerMode && <Crown className="w-3 h-3 mr-1" />}
               BUY ${(quantity * (orderType === 'market' ? currentPrice : price)).toLocaleString()}
             </Button>
             
             <Button 
               onClick={handleSell}
               disabled={quantity > maxSellQuantity || quantity <= 0}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className={`${marketMakerMode ? 'bg-yellow-600 hover:bg-yellow-700 border-2 border-yellow-400' : 'bg-red-600 hover:bg-red-700'} text-white`}
             >
               <TrendingDown className="w-4 h-4 mr-2" />
+              {marketMakerMode && <Crown className="w-3 h-3 mr-1" />}
               SELL {quantity.toLocaleString()} shares
             </Button>
           </div>
@@ -162,18 +192,20 @@ export const TradingInterface = ({ onTrade, currentPrice, cash, shares, shortPos
             <Button 
               onClick={handleShort}
               disabled={quantity > maxShortQuantity || quantity <= 0}
-              className="bg-orange-600 hover:bg-orange-700 text-white"
+              className={`${marketMakerMode ? 'bg-yellow-600 hover:bg-yellow-700 border-2 border-yellow-400' : 'bg-orange-600 hover:bg-orange-700'} text-white`}
             >
               <TrendingDown className="w-4 h-4 mr-2" />
+              {marketMakerMode && <Crown className="w-3 h-3 mr-1" />}
               SHORT {quantity.toLocaleString()} shares
             </Button>
             
             <Button 
               onClick={handleCover}
               disabled={quantity > shortPosition || quantity <= 0 || shortPosition <= 0}
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className={`${marketMakerMode ? 'bg-yellow-600 hover:bg-yellow-700 border-2 border-yellow-400' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
             >
               <TrendingUp className="w-4 h-4 mr-2" />
+              {marketMakerMode && <Crown className="w-3 h-3 mr-1" />}
               COVER {Math.min(quantity, shortPosition).toLocaleString()} shorts
             </Button>
           </div>
