@@ -6,6 +6,7 @@ import { TradingInterface } from '@/components/TradingInterface';
 import { Portfolio } from '@/components/Portfolio';
 import { MarketSentiment } from '@/components/MarketSentiment';
 import { MarketSimulation } from '@/lib/MarketSimulation';
+import { MarketMakerSimulation } from '@/lib/MarketMakerSimulation';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -46,6 +47,7 @@ const Index = () => {
   const [orders, setOrders] = useState([]);
   const [chartData, setChartData] = useState([]);
   const simulationRef = useRef(null);
+  const marketMakerRef = useRef(null);
 
   useEffect(() => {
     if (!simulationRef.current) {
@@ -57,6 +59,9 @@ const Index = () => {
         onOrderBookUpdate: setOrders,
         onPortfolioUpdate: setPortfolio
       });
+    }
+    if (!marketMakerRef.current) {
+      marketMakerRef.current = new MarketMakerSimulation();
     }
   }, []);
 
@@ -150,10 +155,10 @@ const Index = () => {
   };
 
   const handleTrade = (type: 'buy' | 'sell', quantity: number, price: number, isShort: boolean = false) => {
-    if (marketMakerMode && simulationRef.current) {
+    if (marketMakerMode && marketMakerRef.current) {
       // In market maker mode, set market manipulation
       const direction = (type === 'buy' && !isShort) || (type === 'sell' && isShort) ? 'up' : 'down';
-      simulationRef.current.setMarketManipulation(direction, 10 + Math.floor(Math.random() * 11)); // 10-20 candles
+      marketMakerRef.current.setMarketManipulation(direction, 10 + Math.floor(Math.random() * 11)); // 10-20 candles
     }
     simulationRef.current?.executeTrade(type, quantity, price, isShort);
   };
@@ -166,8 +171,8 @@ const Index = () => {
 
   const handleMarketMakerToggle = (enabled: boolean) => {
     setMarketMakerMode(enabled);
-    if (simulationRef.current) {
-      simulationRef.current.setMarketMakerMode(enabled);
+    if (marketMakerRef.current) {
+      marketMakerRef.current.setMarketMakerMode(enabled);
     }
   };
 
@@ -307,13 +312,13 @@ const Index = () => {
                 <div>
                   <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Business Cycle</div>
                   <div className="text-xl font-bold text-white flex items-center gap-2">
-                    {getBusinessCycleIcon(marketData.businessCycle.phase)}
-                    {marketData.businessCycle.phase.toUpperCase()}
+                    {getBusinessCycleIcon(marketData.businessCycle?.phase)}
+                    {marketData.businessCycle?.phase?.toUpperCase()}
                   </div>
                   <div className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`}>
-                    GDP: {(marketData.businessCycle.gdpGrowth * 100).toFixed(1)}% | 
-                    Inflation: {(marketData.businessCycle.inflation * 100).toFixed(1)}% | 
-                    Unemployment: {(marketData.businessCycle.unemployment * 100).toFixed(1)}%
+                    GDP: {(marketData.businessCycle?.gdpGrowth * 100 || 0).toFixed(1)}% | 
+                    Inflation: {(marketData.businessCycle?.inflation * 100 || 0).toFixed(1)}% | 
+                    Unemployment: {(marketData.businessCycle?.unemployment * 100 || 0).toFixed(1)}%
                   </div>
                 </div>
               </div>
