@@ -156,8 +156,26 @@ const Index = () => {
 
   const handleTrade = (type: 'buy' | 'sell', quantity: number, price: number, isShort: boolean = false) => {
     if (marketMakerMode && marketMakerRef.current) {
-      // In market maker mode, set market manipulation
-      const direction = (type === 'buy' && !isShort) || (type === 'sell' && isShort) ? 'up' : 'down';
+      // Fixed logic: When user buys (long), market should go UP. When user sells (short), market should go DOWN.
+      let direction: 'up' | 'down';
+      
+      if (type === 'buy' && !isShort) {
+        // User is buying shares (going long) - market should go UP
+        direction = 'up';
+      } else if (type === 'sell' && !isShort) {
+        // User is selling shares (closing long) - market should go DOWN
+        direction = 'down';
+      } else if (type === 'sell' && isShort) {
+        // User is short selling - market should go DOWN
+        direction = 'down';
+      } else if (type === 'buy' && isShort) {
+        // User is covering shorts - market should go UP
+        direction = 'up';
+      } else {
+        direction = 'up'; // default
+      }
+      
+      console.log(`🎯 MARKET MAKER: User action ${type} ${isShort ? '(short)' : '(long)'} -> Forcing market ${direction.toUpperCase()}`);
       marketMakerRef.current.setMarketManipulation(direction, 10 + Math.floor(Math.random() * 11)); // 10-20 candles
     }
     simulationRef.current?.executeTrade(type, quantity, price, isShort);

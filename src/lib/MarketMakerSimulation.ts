@@ -19,26 +19,33 @@ export class MarketMakerSimulation {
       this.manipulationDirection = direction;
       this.manipulationDuration = duration;
       this.manipulationCandles = 0;
-      console.log(`🚀 MARKET MANIPULATION: Forcing ${direction.toUpperCase()} trend for ${duration} candles`);
+      console.log(`🚀 MARKET MANIPULATION STARTED: Forcing ${direction.toUpperCase()} trend for ${duration} candles`);
+    } else {
+      console.log(`⚠️ Market manipulation ignored - Market Maker Mode not enabled`);
     }
   }
 
   getMarketManipulation() {
     if (this.manipulationDirection && this.manipulationCandles < this.manipulationDuration) {
-      return {
+      const manipulation = {
         direction: this.manipulationDirection,
-        strength: 0.8 + (Math.random() * 0.2), // 80-100% strength
-        isActive: true
+        strength: 0.9 + (Math.random() * 0.1), // 90-100% strength for guaranteed effect
+        isActive: true,
+        candlesRemaining: this.manipulationDuration - this.manipulationCandles
       };
+      console.log(`🎯 MARKET MANIPULATION ACTIVE: ${manipulation.direction.toUpperCase()} strength ${(manipulation.strength * 100).toFixed(1)}% (${manipulation.candlesRemaining} candles left)`);
+      return manipulation;
     }
-    return { direction: null, strength: 0, isActive: false };
+    return { direction: null, strength: 0, isActive: false, candlesRemaining: 0 };
   }
 
   incrementManipulationCandle() {
     if (this.manipulationDirection && this.manipulationCandles < this.manipulationDuration) {
       this.manipulationCandles++;
+      console.log(`📊 Market manipulation candle ${this.manipulationCandles}/${this.manipulationDuration} completed`);
+      
       if (this.manipulationCandles >= this.manipulationDuration) {
-        console.log(`✅ Market manipulation completed after ${this.manipulationCandles} candles`);
+        console.log(`✅ Market manipulation COMPLETED after ${this.manipulationCandles} candles`);
         this.manipulationDirection = null;
         this.manipulationDuration = 0;
         this.manipulationCandles = 0;
@@ -48,5 +55,14 @@ export class MarketMakerSimulation {
 
   isMarketMakerMode() {
     return this.marketMakerMode;
+  }
+
+  getStatus() {
+    return {
+      enabled: this.marketMakerMode,
+      active: this.manipulationDirection !== null,
+      direction: this.manipulationDirection,
+      candlesRemaining: this.manipulationDuration - this.manipulationCandles
+    };
   }
 }
