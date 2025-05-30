@@ -31,7 +31,6 @@ const Index = () => {
     currentCandle: null,
     marketEvents: [],
     neuralNetworkStatus: null,
-    businessCycle: null,
     marketTrend: 0,
     trendStrength: 0,
     activePolicies: []
@@ -130,7 +129,6 @@ const Index = () => {
       currentCandle: null, 
       marketEvents: [], 
       neuralNetworkStatus: null,
-      businessCycle: null,
       marketTrend: 0,
       trendStrength: 0,
       activePolicies: []
@@ -232,16 +230,6 @@ const Index = () => {
     return 'Extreme Greed';
   };
 
-  const getBusinessCycleIcon = (phase: string) => {
-    switch (phase) {
-      case 'expansion': return '📈';
-      case 'peak': return '🏔️';
-      case 'contraction': return '📉';
-      case 'trough': return '🕳️';
-      default: return '📊';
-    }
-  };
-
   const getTrendIcon = (trend: number) => {
     if (trend > 0.3) return '🚀';
     if (trend > 0) return '📈';
@@ -260,11 +248,11 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-              $20B Market Simulation
+              $20B Order-Driven Market
               {marketMakerMode && <Crown className="inline w-6 h-6 ml-2 text-yellow-400" />}
             </h1>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
-              Realistic $20B Market • $15B Market Makers • $5B Retail Traders • Price Range: $10-$10,000 • Low Volatility
+              Low Volatility Market • Realistic Order Sizes • Persistent Order Book • Price Range: $10-$10,000
               {marketMakerMode && <span className="text-yellow-400 font-bold"> • YOU CONTROL THE MARKET</span>}
             </p>
           </div>
@@ -355,10 +343,10 @@ const Index = () => {
                 <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Total Market Cap</div>
                 <div className="text-xl font-bold text-white">$20B</div>
                 <div className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`}>
-                  Realistic Mid-Cap Market
+                  Order-Driven Market
                 </div>
               </div>
-              <div className="text-2xl">🏛️</div>
+              <div className="text-2xl">📊</div>
             </div>
           </Card>
 
@@ -368,7 +356,7 @@ const Index = () => {
                 <div className={`text-sm ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>Market Makers</div>
                 <div className="text-xl font-bold text-white">$15B (75%)</div>
                 <div className={`text-sm ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>
-                  Institutional Control
+                  Institutional Orders
                 </div>
               </div>
               <div className="text-2xl">🏦</div>
@@ -381,7 +369,7 @@ const Index = () => {
                 <div className={`text-sm ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>Retail Traders</div>
                 <div className="text-xl font-bold text-white">$5B (25%)</div>
                 <div className={`text-sm ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`}>
-                  Individual Investors
+                  Small Orders
                 </div>
               </div>
               <div className="text-2xl">👥</div>
@@ -389,54 +377,36 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Business Cycle & Market Trend Info */}
-        {marketData.businessCycle && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className={`${isDarkMode ? 'bg-blue-900/50 border-blue-700' : 'bg-blue-100 border-blue-300'} p-4`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Business Cycle</div>
-                  <div className="text-xl font-bold text-white flex items-center gap-2">
-                    {getBusinessCycleIcon(marketData.businessCycle?.phase)}
-                    {marketData.businessCycle?.phase?.toUpperCase()}
-                  </div>
-                  <div className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`}>
-                    GDP: {(marketData.businessCycle?.gdpGrowth * 100 || 0).toFixed(1)}% | 
-                    Inflation: {(marketData.businessCycle?.inflation * 100 || 0).toFixed(1)}% | 
-                    Unemployment: {(marketData.businessCycle?.unemployment * 100 || 0).toFixed(1)}%
-                  </div>
+        {/* Market Trend Info (removed business cycle) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card className={`${isDarkMode ? 'bg-purple-900/50 border-purple-700' : 'bg-purple-100 border-purple-300'} p-4`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-sm ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>Market Trend</div>
+                <div className="text-xl font-bold text-white flex items-center gap-2">
+                  {getTrendIcon(marketData.marketTrend)}
+                  {marketData.marketTrend > 0 ? 'BULLISH' : marketData.marketTrend < 0 ? 'BEARISH' : 'NEUTRAL'}
+                </div>
+                <div className={`text-sm ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>
+                  Strength: {(marketData.trendStrength * 100).toFixed(0)}%
                 </div>
               </div>
-            </Card>
+            </div>
+          </Card>
 
-            <Card className={`${isDarkMode ? 'bg-purple-900/50 border-purple-700' : 'bg-purple-100 border-purple-300'} p-4`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className={`text-sm ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>Market Trend</div>
-                  <div className="text-xl font-bold text-white flex items-center gap-2">
-                    {getTrendIcon(marketData.marketTrend)}
-                    {marketData.marketTrend > 0 ? 'BULLISH' : marketData.marketTrend < 0 ? 'BEARISH' : 'NEUTRAL'}
-                  </div>
-                  <div className={`text-sm ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>
-                    Strength: {(marketData.trendStrength * 100).toFixed(0)}%
-                  </div>
+          <Card className={`${isDarkMode ? 'bg-orange-900/50 border-orange-700' : 'bg-orange-100 border-orange-300'} p-4`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-sm ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>Order Flow Focus</div>
+                <div className="text-xl font-bold text-white">Persistent Orders</div>
+                <div className={`text-sm ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`}>
+                  Low Volatility Trading
                 </div>
               </div>
-            </Card>
-
-            <Card className={`${isDarkMode ? 'bg-orange-900/50 border-orange-700' : 'bg-orange-100 border-orange-300'} p-4`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className={`text-sm ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>Price Range</div>
-                  <div className="text-xl font-bold text-white">$10 - $10,000</div>
-                  <div className={`text-sm ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`}>
-                    Realistic Constraints
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-        )}
+              <div className="text-2xl">📋</div>
+            </div>
+          </Card>
+        </div>
 
         {/* Hotkeys Info */}
         <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-3`}>
