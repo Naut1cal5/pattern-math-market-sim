@@ -1,10 +1,10 @@
-
 export class MarketMakerSimulation {
   private marketMakerMode: boolean = false;
   private manipulationDirection: 'up' | 'down' | null = null;
   private manipulationDuration: number = 0;
   private manipulationCandles: number = 0;
-  private tradeVolumeBuffer: Array<{volume: number, direction: 'buy' | 'sell', timestamp: number}> = [];
+  private tradeVolumeBuffer: Array<{volume: number, direction: 'buy' | 'sell', timestamp: number, isClosing?: boolean}> = [];
+  private openPositions: Map<string, {volume: number, direction: 'buy' | 'sell', timestamp: number}> = new Map();
 
   // Market structure parameters
   private readonly TOTAL_MARKET_CAP = 20_000_000_000; // $20B total market
@@ -21,7 +21,7 @@ export class MarketMakerSimulation {
   private readonly MASSIVE_TRADE_THRESHOLD = 0.1; // 10% of market cap is considered massive
 
   constructor() {
-    console.log('🎯 Market Maker Simulation initialized with Volume Impact');
+    console.log('🎯 Market Maker Simulation initialized with Volume Impact and Position Tracking');
     console.log(`📊 Market Structure: $${(this.TOTAL_MARKET_CAP / 1_000_000_000).toFixed(0)}B total market`);
     console.log(`🏦 Market Makers: $${(this.MARKET_MAKER_CAP / 1_000_000_000).toFixed(0)}B (${((this.MARKET_MAKER_CAP / this.TOTAL_MARKET_CAP) * 100).toFixed(0)}%)`);
     console.log(`👥 Retail Traders: $${(this.RETAIL_CAP / 1_000_000_000).toFixed(0)}B (${((this.RETAIL_CAP / this.TOTAL_MARKET_CAP) * 100).toFixed(0)}%)`);
@@ -49,25 +49,49 @@ export class MarketMakerSimulation {
     }
   }
 
-  // Add trade volume to impact calculation
-  addTradeVolume(volume: number, direction: 'buy' | 'sell') {
+  // Add trade volume with position tracking
+  addTradeVolume(volume: number, direction: 'buy' | 'sell', positionId?: string, isClosing: boolean = false) {
     const timestamp = Date.now();
-    this.tradeVolumeBuffer.push({ volume, direction, timestamp });
+    
+    if (isClosing && positionId && this.openPositions.has(positionId)) {
+      // Handle position closure
+      const originalPosition = this.openPositions.get(positionId)!;
+      this.openPositions.delete(positionId);
+      
+      // When closing a position, the market impact is opposite to the original direction
+      const closingDirection = originalPosition.direction === 'buy' ? 'sell' : 'buy';
+      
+      this.tradeVolumeBuffer.push({ volume, direction: closingDirection, timestamp, isClosing: true });
+      
+      console.log(`🔄 POSITION CLOSED: $${(volume / 1_000_000_000).toFixed(2)}B ${originalPosition.direction} position closed -> Market pressure: ${closingDirection.toUpperCase()}`);
+      
+      const volumePercent = (volume / this.TOTAL_MARKET_CAP) * 100;
+      if (volumePercent > this.MASSIVE_TRADE_THRESHOLD * 100) {
+        console.log(`💥 MASSIVE POSITION CLOSURE: ${volumePercent.toFixed(1)}% of market cap released!`);
+      }
+    } else if (!isClosing) {
+      // Handle new position opening
+      if (positionId) {
+        this.openPositions.set(positionId, { volume, direction, timestamp });
+      }
+      
+      this.tradeVolumeBuffer.push({ volume, direction, timestamp, isClosing: false });
+      
+      const volumePercent = (volume / this.TOTAL_MARKET_CAP) * 100;
+      console.log(`💰 NEW POSITION: $${(volume / 1_000_000_000).toFixed(2)}B ${direction.toUpperCase()} (${volumePercent.toFixed(2)}% of market)`);
+      
+      if (volumePercent > this.MASSIVE_TRADE_THRESHOLD * 100) {
+        console.log(`🔥 MASSIVE POSITION OPENED: ${volumePercent.toFixed(1)}% of total market cap!`);
+      }
+    }
     
     // Clean old volume entries
     this.tradeVolumeBuffer = this.tradeVolumeBuffer.filter(
       trade => timestamp - trade.timestamp < this.VOLUME_DECAY_TIME
     );
-
-    const volumePercent = (volume / this.TOTAL_MARKET_CAP) * 100;
-    console.log(`💰 Trade Volume Added: $${(volume / 1_000_000_000).toFixed(2)}B (${volumePercent.toFixed(2)}% of market)`);
-    
-    if (volumePercent > this.MASSIVE_TRADE_THRESHOLD * 100) {
-      console.log(`🔥 MASSIVE TRADE DETECTED: ${volumePercent.toFixed(1)}% of total market cap!`);
-    }
   }
 
-  // Calculate current volume impact on price
+  // Calculate current volume impact on price including position closures
   calculateVolumeImpact(): { direction: 'up' | 'down' | 'neutral', strength: number, description: string } {
     if (this.tradeVolumeBuffer.length === 0) {
       return { direction: 'neutral', strength: 0, description: 'No recent volume' };
@@ -76,11 +100,16 @@ export class MarketMakerSimulation {
     const currentTime = Date.now();
     let buyVolume = 0;
     let sellVolume = 0;
+    let closingVolume = 0;
 
     // Calculate weighted volume (recent trades have more impact)
     this.tradeVolumeBuffer.forEach(trade => {
       const age = currentTime - trade.timestamp;
       const weight = Math.max(0, 1 - (age / this.VOLUME_DECAY_TIME)); // Linear decay
+      
+      if (trade.isClosing) {
+        closingVolume += trade.volume * weight;
+      }
       
       if (trade.direction === 'buy') {
         buyVolume += trade.volume * weight;
@@ -93,19 +122,41 @@ export class MarketMakerSimulation {
     const totalVolume = buyVolume + sellVolume;
     const volumeAsPercentOfMarket = totalVolume / this.TOTAL_MARKET_CAP;
     
-    // Calculate impact strength
+    // Calculate impact strength - position closures have amplified effect
     let strength = Math.abs(netVolume) / this.TOTAL_MARKET_CAP * this.VOLUME_IMPACT_MULTIPLIER;
+    
+    // Amplify impact if there are significant position closures
+    if (closingVolume > 0) {
+      const closureMultiplier = 1 + (closingVolume / this.TOTAL_MARKET_CAP);
+      strength *= closureMultiplier;
+      console.log(`📊 Position closure amplification: ${closureMultiplier.toFixed(2)}x`);
+    }
+    
     strength = Math.min(strength, 0.5); // Cap at 50% price movement
     
     const direction = netVolume > 0 ? 'up' : netVolume < 0 ? 'down' : 'neutral';
     
-    const description = `Buy: $${(buyVolume / 1_000_000_000).toFixed(1)}B, Sell: $${(sellVolume / 1_000_000_000).toFixed(1)}B, Net: ${direction} ${(strength * 100).toFixed(1)}%`;
+    const description = `Buy: $${(buyVolume / 1_000_000_000).toFixed(1)}B, Sell: $${(sellVolume / 1_000_000_000).toFixed(1)}B, Closures: $${(closingVolume / 1_000_000_000).toFixed(1)}B, Net: ${direction} ${(strength * 100).toFixed(1)}%`;
     
     if (volumeAsPercentOfMarket > this.MASSIVE_TRADE_THRESHOLD) {
       console.log(`🚀 VOLUME DOMINANCE: ${description}`);
     }
 
     return { direction, strength, description };
+  }
+
+  // Get largest open positions for order book display
+  getLargestPositions(limit: number = 5): Array<{volume: number, direction: 'buy' | 'sell', age: number}> {
+    const currentTime = Date.now();
+    const positions = Array.from(this.openPositions.values())
+      .map(pos => ({
+        ...pos,
+        age: currentTime - pos.timestamp
+      }))
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, limit);
+    
+    return positions;
   }
 
   getMarketManipulation() {
@@ -195,13 +246,17 @@ export class MarketMakerSimulation {
 
   getStatus() {
     const volumeImpact = this.calculateVolumeImpact();
+    const largestPositions = this.getLargestPositions();
+    
     return {
       enabled: this.marketMakerMode,
       active: this.manipulationDirection !== null || volumeImpact.strength > 0.01,
       direction: this.manipulationDirection || volumeImpact.direction,
       candlesRemaining: this.manipulationDuration - this.manipulationCandles,
       marketStructure: this.getMarketStructure(),
-      volumeImpact
+      volumeImpact,
+      largestPositions,
+      totalOpenPositions: this.openPositions.size
     };
   }
 

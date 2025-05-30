@@ -159,9 +159,16 @@ const Index = () => {
     const tradeVolume = quantity * price;
     
     if (marketMakerMode && marketMakerRef.current) {
+      // Generate unique position ID
+      const positionId = `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Determine if this is closing an existing position
+      const isClosingPosition = (type === 'sell' && portfolio.shares > 0 && !isShort) || 
+                               (type === 'buy' && portfolio.shortPosition > 0 && isShort);
+      
       // Add trade volume to market maker simulation for impact calculation
       const tradeDirection = (type === 'buy' && !isShort) || (type === 'buy' && isShort) ? 'buy' : 'sell';
-      marketMakerRef.current.addTradeVolume(tradeVolume, tradeDirection);
+      marketMakerRef.current.addTradeVolume(tradeVolume, tradeDirection, positionId, isClosingPosition);
       
       // Fixed logic: When user buys (long), market should go UP. When user sells (short), market should go DOWN.
       let direction: 'up' | 'down';
@@ -185,7 +192,12 @@ const Index = () => {
       const volumePercent = (tradeVolume / 20_000_000_000) * 100; // 20B market
       const manipulationDuration = Math.max(10, Math.min(50, Math.floor(volumePercent * 2))); // Scale duration with volume
       
-      console.log(`🎯 MARKET MAKER: User ${type} $${(tradeVolume / 1_000_000_000).toFixed(2)}B (${volumePercent.toFixed(1)}% of market) -> Forcing ${direction.toUpperCase()} for ${manipulationDuration} candles`);
+      if (isClosingPosition) {
+        console.log(`🔄 POSITION CLOSURE: User ${type} $${(tradeVolume / 1_000_000_000).toFixed(2)}B (${volumePercent.toFixed(1)}% of market) -> Market impact: ${direction.toUpperCase()} for ${manipulationDuration} candles`);
+      } else {
+        console.log(`🎯 NEW POSITION: User ${type} $${(tradeVolume / 1_000_000_000).toFixed(2)}B (${volumePercent.toFixed(1)}% of market) -> Forcing ${direction.toUpperCase()} for ${manipulationDuration} candles`);
+      }
+      
       marketMakerRef.current.setMarketManipulation(direction, manipulationDuration);
     }
     simulationRef.current?.executeTrade(type, quantity, price, isShort);
@@ -237,6 +249,9 @@ const Index = () => {
     if (trend < 0) return '📉';
     return '➡️';
   };
+
+  // Get market maker status for order book
+  const marketMakerStatus = marketMakerRef.current?.getStatus();
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} p-4`}>
@@ -536,7 +551,11 @@ const Index = () => {
           </div>
           
           <div>
-            <OrderBook orders={orders} currentPrice={marketData.price} />
+            <OrderBook 
+              orders={orders} 
+              currentPrice={marketData.price} 
+              largestPositions={marketMakerStatus?.largestPositions || []}
+            />
           </div>
         </div>
 
