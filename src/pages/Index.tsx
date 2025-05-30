@@ -155,7 +155,14 @@ const Index = () => {
   };
 
   const handleTrade = (type: 'buy' | 'sell', quantity: number, price: number, isShort: boolean = false) => {
+    // Calculate trade volume in dollars
+    const tradeVolume = quantity * price;
+    
     if (marketMakerMode && marketMakerRef.current) {
+      // Add trade volume to market maker simulation for impact calculation
+      const tradeDirection = (type === 'buy' && !isShort) || (type === 'buy' && isShort) ? 'buy' : 'sell';
+      marketMakerRef.current.addTradeVolume(tradeVolume, tradeDirection);
+      
       // Fixed logic: When user buys (long), market should go UP. When user sells (short), market should go DOWN.
       let direction: 'up' | 'down';
       
@@ -175,8 +182,11 @@ const Index = () => {
         direction = 'up'; // default
       }
       
-      console.log(`🎯 MARKET MAKER: User action ${type} ${isShort ? '(short)' : '(long)'} -> Forcing market ${direction.toUpperCase()}`);
-      marketMakerRef.current.setMarketManipulation(direction, 10 + Math.floor(Math.random() * 11)); // 10-20 candles
+      const volumePercent = (tradeVolume / 20_000_000_000) * 100; // 20B market
+      const manipulationDuration = Math.max(10, Math.min(50, Math.floor(volumePercent * 2))); // Scale duration with volume
+      
+      console.log(`🎯 MARKET MAKER: User ${type} $${(tradeVolume / 1_000_000_000).toFixed(2)}B (${volumePercent.toFixed(1)}% of market) -> Forcing ${direction.toUpperCase()} for ${manipulationDuration} candles`);
+      marketMakerRef.current.setMarketManipulation(direction, manipulationDuration);
     }
     simulationRef.current?.executeTrade(type, quantity, price, isShort);
   };
@@ -504,7 +514,7 @@ const Index = () => {
         {/* Active Government Policies */}
         {marketData.activePolicies && marketData.activePolicies.length > 0 && (
           <Card className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-4`}>
-            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-3`}>Active Government Policies</h3>
+            <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Active Government Policies</h3>
             <div className="space-y-2">
               {marketData.activePolicies.slice(0, 3).map((policy, index) => (
                 <div key={index} className="text-sm p-2 bg-blue-900/20 text-blue-300 rounded border-l-4 border-blue-500">
