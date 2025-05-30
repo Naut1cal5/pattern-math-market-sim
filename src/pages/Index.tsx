@@ -16,7 +16,7 @@ import { Play, Pause, RotateCcw, Activity, TrendingUp, TrendingDown, Moon, Sun, 
 const Index = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [startingCapital, setStartingCapital] = useState(3000000000000); // $3T default
+  const [startingCapital, setStartingCapital] = useState(50000000000); // $50B default - enough to control the market
   const [showCapitalInput, setShowCapitalInput] = useState(false);
   const [marketMakerMode, setMarketMakerMode] = useState(false);
   
@@ -37,10 +37,10 @@ const Index = () => {
     activePolicies: []
   });
   const [portfolio, setPortfolio] = useState({
-    cash: 3000000000000,
+    cash: 50000000000, // $50B starting capital
     shares: 0,
     shortPosition: 0,
-    totalValue: 3000000000000,
+    totalValue: 50000000000,
     pnl: 0,
     pnlPercent: 0
   });
@@ -235,12 +235,12 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-              Trillion Dollar Market Simulation
+              $20B Market Simulation
               {marketMakerMode && <Crown className="inline w-6 h-6 ml-2 text-yellow-400" />}
             </h1>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
-              Real-time trading with {formatLargeNumber(startingCapital)} Capital • 500 Market Makers • $7T Daily Volume • Neural Network AI • Business Cycles
-              {marketMakerMode && <span className="text-yellow-400 font-bold"> • MARKET MAKER MODE ACTIVE</span>}
+              Realistic $20B Market • $15B Market Makers • $5B Retail Traders • Price Range: $10-$10,000 • Low Volatility
+              {marketMakerMode && <span className="text-yellow-400 font-bold"> • YOU CONTROL THE MARKET</span>}
             </p>
           </div>
           
@@ -284,10 +284,10 @@ const Index = () => {
             <div className="flex items-center gap-3">
               <Crown className="w-6 h-6 text-yellow-400" />
               <div>
-                <h3 className="text-lg font-bold text-yellow-400">Market Maker Mode Active</h3>
+                <h3 className="text-lg font-bold text-yellow-400">Market Control Mode Active</h3>
                 <p className="text-yellow-200 text-sm">
-                  You now control the market! Your trades will force price movement in that direction for 10-20 candles, 
-                  overriding all market sentiment, news events, and business cycles.
+                  You have enough capital to overpower the $15B market makers! Your trades will force the $20B market 
+                  to move in your direction for 10-20 candles, regardless of the $5B retail sentiment.
                 </p>
               </div>
             </div>
@@ -310,10 +310,10 @@ const Index = () => {
               </div>
               <div className="flex gap-2">
                 <Button onClick={() => setStartingCapital(1000000000)} variant="outline" size="sm">$1B</Button>
+                <Button onClick={() => setStartingCapital(10000000000)} variant="outline" size="sm">$10B</Button>
+                <Button onClick={() => setStartingCapital(25000000000)} variant="outline" size="sm">$25B</Button>
+                <Button onClick={() => setStartingCapital(50000000000)} variant="outline" size="sm">$50B</Button>
                 <Button onClick={() => setStartingCapital(100000000000)} variant="outline" size="sm">$100B</Button>
-                <Button onClick={() => setStartingCapital(1000000000000)} variant="outline" size="sm">$1T</Button>
-                <Button onClick={() => setStartingCapital(3000000000000)} variant="outline" size="sm">$3T</Button>
-                <Button onClick={() => setStartingCapital(10000000000000)} variant="outline" size="sm">$10T</Button>
               </div>
               <Button onClick={handleCapitalChange} className="bg-green-600 hover:bg-green-700">
                 Apply
@@ -321,6 +321,48 @@ const Index = () => {
             </div>
           </Card>
         )}
+
+        {/* Market Structure Info */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className={`${isDarkMode ? 'bg-blue-900/50 border-blue-700' : 'bg-blue-100 border-blue-300'} p-4`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Total Market Cap</div>
+                <div className="text-xl font-bold text-white">$20B</div>
+                <div className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`}>
+                  Realistic Mid-Cap Market
+                </div>
+              </div>
+              <div className="text-2xl">🏛️</div>
+            </div>
+          </Card>
+
+          <Card className={`${isDarkMode ? 'bg-purple-900/50 border-purple-700' : 'bg-purple-100 border-purple-300'} p-4`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-sm ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>Market Makers</div>
+                <div className="text-xl font-bold text-white">$15B (75%)</div>
+                <div className={`text-sm ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>
+                  Institutional Control
+                </div>
+              </div>
+              <div className="text-2xl">🏦</div>
+            </div>
+          </Card>
+
+          <Card className={`${isDarkMode ? 'bg-orange-900/50 border-orange-700' : 'bg-orange-100 border-orange-300'} p-4`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className={`text-sm ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>Retail Traders</div>
+                <div className="text-xl font-bold text-white">$5B (25%)</div>
+                <div className={`text-sm ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`}>
+                  Individual Investors
+                </div>
+              </div>
+              <div className="text-2xl">👥</div>
+            </div>
+          </Card>
+        </div>
 
         {/* Business Cycle & Market Trend Info */}
         {marketData.businessCycle && (
@@ -360,12 +402,10 @@ const Index = () => {
             <Card className={`${isDarkMode ? 'bg-orange-900/50 border-orange-700' : 'bg-orange-100 border-orange-300'} p-4`}>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className={`text-sm ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>Active Policies</div>
-                  <div className="text-xl font-bold text-white">
-                    {marketData.activePolicies?.length || 0}
-                  </div>
+                  <div className={`text-sm ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>Price Range</div>
+                  <div className="text-xl font-bold text-white">$10 - $10,000</div>
                   <div className={`text-sm ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`}>
-                    Government Interventions
+                    Realistic Constraints
                   </div>
                 </div>
               </div>
