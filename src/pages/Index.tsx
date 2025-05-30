@@ -238,8 +238,9 @@ const Index = () => {
     return '➡️';
   };
 
-  // Get market maker status for order book
+  // Get market maker status for dynamic market cap display
   const marketMakerStatus = marketMakerRef.current?.getStatus();
+  const marketStructure = marketMakerStatus?.marketStructure;
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} p-4`}>
@@ -248,11 +249,11 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-              $20B Order-Driven Market
+              ${marketStructure ? (marketStructure.currentMarketCap / 1_000_000_000).toFixed(1) : '20.0'}B Order-Driven Market
               {marketMakerMode && <Crown className="inline w-6 h-6 ml-2 text-yellow-400" />}
             </h1>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
-              Low Volatility Market • Realistic Order Sizes • Persistent Order Book • Price Range: $10-$10,000
+              Dynamic Market Cap • Realistic Order Sizes • Persistent Order Book • Price Range: $10-$10,000
               {marketMakerMode && <span className="text-yellow-400 font-bold"> • YOU CONTROL THE MARKET</span>}
             </p>
           </div>
@@ -299,8 +300,8 @@ const Index = () => {
               <div>
                 <h3 className="text-lg font-bold text-yellow-400">Market Control Mode Active</h3>
                 <p className="text-yellow-200 text-sm">
-                  You have enough capital to overpower the $15B market makers! Your trades will force the $20B market 
-                  to move in your direction for 10-20 candles, regardless of the $5B retail sentiment.
+                  You have enough capital to overpower the ${marketStructure ? (marketStructure.marketMakerCap / 1_000_000_000).toFixed(1) : '15.0'}B market makers! Your trades will force the ${marketStructure ? (marketStructure.currentMarketCap / 1_000_000_000).toFixed(1) : '20.0'}B market 
+                  to move in your direction for 10-20 candles, regardless of the ${marketStructure ? (marketStructure.retailCap / 1_000_000_000).toFixed(1) : '5.0'}B retail sentiment.
                 </p>
               </div>
             </div>
@@ -335,15 +336,20 @@ const Index = () => {
           </Card>
         )}
 
-        {/* Market Structure Info */}
+        {/* Market Structure Info - Updated with Dynamic Values */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className={`${isDarkMode ? 'bg-blue-900/50 border-blue-700' : 'bg-blue-100 border-blue-300'} p-4`}>
             <div className="flex items-center justify-between">
               <div>
                 <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Total Market Cap</div>
-                <div className="text-xl font-bold text-white">$20B</div>
+                <div className="text-xl font-bold text-white">
+                  ${marketStructure ? (marketStructure.currentMarketCap / 1_000_000_000).toFixed(1) : '20.0'}B
+                </div>
                 <div className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`}>
-                  Order-Driven Market
+                  {marketStructure && marketStructure.currentMarketCap !== marketStructure.initialMarketCap ? 
+                    `${marketStructure.currentMarketCap > marketStructure.initialMarketCap ? '+' : ''}${(((marketStructure.currentMarketCap - marketStructure.initialMarketCap) / marketStructure.initialMarketCap) * 100).toFixed(1)}% vs Initial` :
+                    'Order-Driven Market'
+                  }
                 </div>
               </div>
               <div className="text-2xl">📊</div>
@@ -354,7 +360,9 @@ const Index = () => {
             <div className="flex items-center justify-between">
               <div>
                 <div className={`text-sm ${isDarkMode ? 'text-purple-300' : 'text-purple-600'}`}>Market Makers</div>
-                <div className="text-xl font-bold text-white">$15B (75%)</div>
+                <div className="text-xl font-bold text-white">
+                  ${marketStructure ? (marketStructure.marketMakerCap / 1_000_000_000).toFixed(1) : '15.0'}B ({marketStructure ? (marketStructure.marketMakerPercentage * 100).toFixed(0) : '75'}%)
+                </div>
                 <div className={`text-sm ${isDarkMode ? 'text-purple-400' : 'text-purple-500'}`}>
                   Institutional Orders
                 </div>
@@ -367,7 +375,9 @@ const Index = () => {
             <div className="flex items-center justify-between">
               <div>
                 <div className={`text-sm ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>Retail Traders</div>
-                <div className="text-xl font-bold text-white">$5B (25%)</div>
+                <div className="text-xl font-bold text-white">
+                  ${marketStructure ? (marketStructure.retailCap / 1_000_000_000).toFixed(1) : '5.0'}B ({marketStructure ? (marketStructure.retailPercentage * 100).toFixed(0) : '25'}%)
+                </div>
                 <div className={`text-sm ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`}>
                   Small Orders
                 </div>
@@ -555,6 +565,15 @@ const Index = () => {
                 </div>
               ))}
             </div>
+            {/* Market Cap Change Indicator */}
+            {marketStructure && marketStructure.currentMarketCap !== marketStructure.initialMarketCap && (
+              <div className="mt-3 p-2 bg-blue-900/20 text-blue-300 rounded border-l-4 border-blue-500">
+                💰 Market Cap: ${(marketStructure.currentMarketCap / 1_000_000_000).toFixed(2)}B 
+                ({marketStructure.currentMarketCap > marketStructure.initialMarketCap ? '+' : ''}
+                {(((marketStructure.currentMarketCap - marketStructure.initialMarketCap) / marketStructure.initialMarketCap) * 100).toFixed(1)}% 
+                vs ${(marketStructure.initialMarketCap / 1_000_000_000).toFixed(1)}B initial)
+              </div>
+            )}
           </Card>
         )}
       </div>
