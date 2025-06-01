@@ -15,22 +15,23 @@ export class MarketMakerSimulation {
   private readonly MAX_PRICE = 10_000; // $10,000 max realistic price
   private readonly MIN_PRICE = 10; // $10 minimum price
   
-  // ULTRA-REDUCED volatility for realistic movement - pennies per candle
-  private readonly BASE_VOLATILITY = 0.0000001; // 0.00001% base volatility (microscopic)
-  private readonly PRICE_STEP_LIMIT = 0.000001; // Max 0.0001% price movement per candle (pennies)
+  // EXTREMELY REDUCED volatility for realistic movement - tiny fractions per candle
+  private readonly BASE_VOLATILITY = 0.000001; // 0.0001% base volatility (microscopic)
+  private readonly PRICE_STEP_LIMIT = 0.00001; // Max 0.001% price movement per candle (cents only)
+  private readonly MAX_ABSOLUTE_MOVEMENT = 0.10; // Maximum $0.10 movement per candle regardless of percentage
   
   // Volume impact parameters - virtually no impact for realistic movement
-  private readonly VOLUME_IMPACT_MULTIPLIER = 0.0001; // Almost no impact (0.01%)
+  private readonly VOLUME_IMPACT_MULTIPLIER = 0.00001; // Almost no impact (0.001%)
   private readonly VOLUME_DECAY_TIME = 1200000; // 20 minutes for volume impact to decay
   private readonly MASSIVE_TRADE_THRESHOLD = 0.1; // 10% of market cap is considered massive
 
   constructor() {
-    console.log('🎯 Market Maker Simulation initialized with Penny-Level Price Movement');
+    console.log('🎯 Market Maker Simulation initialized with Cents-Only Price Movement');
     console.log(`📊 Market Structure: $${(this.INITIAL_MARKET_CAP / 1_000_000_000).toFixed(0)}B initial market`);
     console.log(`🏦 Market Makers: $${(this.MARKET_MAKER_CAP / 1_000_000_000).toFixed(0)}B (${((this.MARKET_MAKER_CAP / this.INITIAL_MARKET_CAP) * 100).toFixed(0)}%)`);
     console.log(`👥 Retail Traders: $${(this.RETAIL_CAP / 1_000_000_000).toFixed(0)}B (${((this.RETAIL_CAP / this.INITIAL_MARKET_CAP) * 100).toFixed(0)}%)`);
     console.log(`💰 Price Range: $${this.MIN_PRICE} - $${this.MAX_PRICE.toLocaleString()}`);
-    console.log(`🐌 Penny Movement: ${this.VOLUME_IMPACT_MULTIPLIER}x multiplier, ${(this.PRICE_STEP_LIMIT * 100).toFixed(6)}% max movement per candle`);
+    console.log(`🐌 Cents Movement: Max ${(this.PRICE_STEP_LIMIT * 100).toFixed(5)}% or $${this.MAX_ABSOLUTE_MOVEMENT} per candle`);
     this.currentMarketCap = this.INITIAL_MARKET_CAP;
   }
 
@@ -177,34 +178,38 @@ export class MarketMakerSimulation {
     const volumeImpact = this.calculateVolumeImpact();
     
     if (this.manipulationDirection && this.manipulationCandles < this.manipulationDuration) {
-      // Market maker mode manipulation - extremely reduced strength for realism
+      // Market maker mode manipulation - EXTREMELY reduced strength for realism
+      const baseStrength = 0.0001 + (Math.random() * 0.0001); // 0.01-0.02% strength only
       const manipulation = {
         direction: this.manipulationDirection,
-        strength: 0.01 + (Math.random() * 0.005), // 1-1.5% strength (very realistic)
+        strength: baseStrength,
         isActive: true,
         candlesRemaining: this.manipulationDuration - this.manipulationCandles,
-        maxPriceStep: this.PRICE_STEP_LIMIT * 3, // Allow 0.0003% max movement when manipulating
+        maxPriceStep: Math.min(this.PRICE_STEP_LIMIT, this.MAX_ABSOLUTE_MOVEMENT / 100), // Ensure cents-only movement
         priceConstraints: {
           min: this.MIN_PRICE,
-          max: this.MAX_PRICE
+          max: this.MAX_PRICE,
+          maxAbsoluteMovement: this.MAX_ABSOLUTE_MOVEMENT
         },
         volumeImpact
       };
-      console.log(`🎯 MARKET MANIPULATION ACTIVE: ${manipulation.direction.toUpperCase()} strength ${(manipulation.strength * 100).toFixed(1)}% (${manipulation.candlesRemaining} candles left)`);
+      console.log(`🎯 MARKET MANIPULATION ACTIVE: ${manipulation.direction.toUpperCase()} strength ${(manipulation.strength * 100).toFixed(4)}% (${manipulation.candlesRemaining} candles left)`);
       return manipulation;
     }
     
     // Pure volume-based impact when not in manipulation mode - microscopic
-    if (volumeImpact.strength > 0.000001) { // Only apply if impact is significant (>0.0001%)
+    if (volumeImpact.strength > 0.00001) { // Only apply if impact is significant (>0.001%)
+      const constrainedStrength = Math.min(volumeImpact.strength, this.PRICE_STEP_LIMIT);
       return { 
         direction: volumeImpact.direction, 
-        strength: volumeImpact.strength, 
+        strength: constrainedStrength, 
         isActive: true, 
         candlesRemaining: 0,
-        maxPriceStep: this.PRICE_STEP_LIMIT * (1 + volumeImpact.strength * 0.01), // Microscopic scale
+        maxPriceStep: Math.min(this.PRICE_STEP_LIMIT, this.MAX_ABSOLUTE_MOVEMENT / 100),
         priceConstraints: {
           min: this.MIN_PRICE,
-          max: this.MAX_PRICE
+          max: this.MAX_PRICE,
+          maxAbsoluteMovement: this.MAX_ABSOLUTE_MOVEMENT
         },
         volumeImpact
       };
@@ -218,7 +223,8 @@ export class MarketMakerSimulation {
       maxPriceStep: this.PRICE_STEP_LIMIT,
       priceConstraints: {
         min: this.MIN_PRICE,
-        max: this.MAX_PRICE
+        max: this.MAX_PRICE,
+        maxAbsoluteMovement: this.MAX_ABSOLUTE_MOVEMENT
       },
       volumeImpact
     };
