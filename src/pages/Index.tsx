@@ -16,7 +16,7 @@ import { Play, Pause, RotateCcw, Activity, TrendingUp, TrendingDown, Moon, Sun, 
 const Index = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [startingCapital, setStartingCapital] = useState(50000000000); // $50B default - enough to control the market
+  const [startingCapital, setStartingCapital] = useState(50000000000);
   const [showCapitalInput, setShowCapitalInput] = useState(false);
   const [marketMakerMode, setMarketMakerMode] = useState(false);
   
@@ -36,7 +36,7 @@ const Index = () => {
     activePolicies: []
   });
   const [portfolio, setPortfolio] = useState({
-    cash: 50000000000, // $50B starting capital
+    cash: 50000000000,
     shares: 0,
     shortPosition: 0,
     totalValue: 50000000000,
@@ -52,6 +52,14 @@ const Index = () => {
     if (!simulationRef.current) {
       simulationRef.current = new MarketSimulation({
         onPriceUpdate: (data) => {
+          // CRITICAL: Enforce price constraints before updating UI
+          if (marketMakerRef.current && data.price !== undefined) {
+            const constrainedPrice = marketMakerRef.current.enforceRealisticPriceMovement(data.price, marketData.price);
+            if (constrainedPrice !== data.price) {
+              console.log(`🔒 PRICE CONSTRAINED: $${data.price.toFixed(2)} -> $${constrainedPrice.toFixed(2)}`);
+              data.price = constrainedPrice;
+            }
+          }
           setMarketData(data);
           setChartData(prev => [...prev.slice(-99), data]);
         },
@@ -62,7 +70,7 @@ const Index = () => {
     if (!marketMakerRef.current) {
       marketMakerRef.current = new MarketMakerSimulation();
     }
-  }, []);
+  }, [marketData.price]);
 
   // Hotkey event listener
   useEffect(() => {
@@ -153,50 +161,35 @@ const Index = () => {
   };
 
   const handleTrade = (type: 'buy' | 'sell', quantity: number, price: number, isShort: boolean = false) => {
-    // Calculate trade volume in dollars
     const tradeVolume = quantity * price;
     
     if (marketMakerMode && marketMakerRef.current) {
-      // Generate unique position ID
       const positionId = `${type}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      // Determine if this is closing an existing position
       const isClosingPosition = (type === 'sell' && portfolio.shares > 0 && !isShort) || 
                                (type === 'buy' && portfolio.shortPosition > 0 && isShort);
       
-      // Add trade volume to market maker simulation for impact calculation
       const tradeDirection = (type === 'buy' && !isShort) || (type === 'buy' && isShort) ? 'buy' : 'sell';
       marketMakerRef.current.addTradeVolume(tradeVolume, tradeDirection, positionId, isClosingPosition);
       
-      // Fixed logic: When user buys (long), market should go UP. When user sells (short), market should go DOWN.
       let direction: 'up' | 'down';
-      
       if (type === 'buy' && !isShort) {
-        // User is buying shares (going long) - market should go UP
         direction = 'up';
       } else if (type === 'sell' && !isShort) {
-        // User is selling shares (closing long) - market should go DOWN
         direction = 'down';
       } else if (type === 'sell' && isShort) {
-        // User is short selling - market should go DOWN
         direction = 'down';
       } else if (type === 'buy' && isShort) {
-        // User is covering shorts - market should go UP
         direction = 'up';
       } else {
-        direction = 'up'; // default
+        direction = 'up';
       }
       
       const currentMarketCap = marketMakerRef.current.getCurrentMarketCap();
       const volumePercent = (tradeVolume / currentMarketCap) * 100;
-      const manipulationDuration = Math.max(5, Math.min(25, Math.floor(volumePercent * 1.5))); // Reduced duration for realism
+      // REDUCED manipulation duration for realistic movement
+      const manipulationDuration = Math.max(3, Math.min(8, Math.floor(volumePercent * 0.5)));
       
-      if (isClosingPosition) {
-        console.log(`🔄 POSITION CLOSURE: User ${type} $${(tradeVolume / 1_000_000_000).toFixed(2)}B (${volumePercent.toFixed(1)}% of market) -> Market impact: ${direction.toUpperCase()} for ${manipulationDuration} candles`);
-      } else {
-        console.log(`🎯 NEW POSITION: User ${type} $${(tradeVolume / 1_000_000_000).toFixed(2)}B (${volumePercent.toFixed(1)}% of market) -> Forcing ${direction.toUpperCase()} for ${manipulationDuration} candles`);
-      }
-      
+      console.log(`🎯 TRADE: ${type} $${(tradeVolume / 1_000_000_000).toFixed(2)}B -> ${direction.toUpperCase()} for ${manipulationDuration} candles`);
       marketMakerRef.current.setMarketManipulation(direction, manipulationDuration);
     }
     simulationRef.current?.executeTrade(type, quantity, price, isShort);
@@ -250,12 +243,12 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-              ${(currentMarketCap / 1_000_000_000).toFixed(1)}B Ultra-Realistic Market
+              ${(currentMarketCap / 1_000_000_000).toFixed(1)}B CONSTRAINED Market
               {marketMakerMode && <Crown className="inline w-6 h-6 ml-2 text-yellow-400" />}
             </h1>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
-              Ultra-Low Volatility • Realistic Cents Movement • Persistent Orders • Price Range: $10-$10,000
-              {marketMakerMode && <span className="text-yellow-400 font-bold"> • YOU CONTROL THE MARKET</span>}
+              ABSOLUTE CONSTRAINTS: Max $0.25 OR 0.25% per candle • Range: $10-$10,000 • REALISTIC MOVEMENT ONLY
+              {marketMakerMode && <span className="text-yellow-400 font-bold"> • CONSTRAINED CONTROL MODE</span>}
             </p>
           </div>
           
@@ -293,16 +286,16 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Market Maker Mode Alert */}
+        {/* Market Maker Mode Alert - Updated */}
         {marketMakerMode && (
           <Card className="bg-gradient-to-r from-yellow-900/50 to-orange-900/50 border border-yellow-600 p-4">
             <div className="flex items-center gap-3">
               <Crown className="w-6 h-6 text-yellow-400" />
               <div>
-                <h3 className="text-lg font-bold text-yellow-400">Market Control Mode Active</h3>
+                <h3 className="text-lg font-bold text-yellow-400">CONSTRAINED Market Control Mode</h3>
                 <p className="text-yellow-200 text-sm">
-                  You have enough capital to overpower the $15B market makers! Your trades will force the ${(currentMarketCap / 1_000_000_000).toFixed(1)}B market 
-                  to move in your direction for 5-25 candles with realistic price movements.
+                  Your trades influence direction but are LIMITED to realistic movements: Maximum $0.25 or 0.25% per candle.
+                  No more massive price jumps - only realistic stock market movement.
                 </p>
               </div>
             </div>
