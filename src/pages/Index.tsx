@@ -187,8 +187,9 @@ const Index = () => {
         direction = 'up'; // default
       }
       
-      const volumePercent = (tradeVolume / 20_000_000_000) * 100; // 20B market
-      const manipulationDuration = Math.max(10, Math.min(50, Math.floor(volumePercent * 2))); // Scale duration with volume
+      const currentMarketCap = marketMakerRef.current.getCurrentMarketCap();
+      const volumePercent = (tradeVolume / currentMarketCap) * 100;
+      const manipulationDuration = Math.max(5, Math.min(25, Math.floor(volumePercent * 1.5))); // Reduced duration for realism
       
       if (isClosingPosition) {
         console.log(`🔄 POSITION CLOSURE: User ${type} $${(tradeVolume / 1_000_000_000).toFixed(2)}B (${volumePercent.toFixed(1)}% of market) -> Market impact: ${direction.toUpperCase()} for ${manipulationDuration} candles`);
@@ -238,8 +239,9 @@ const Index = () => {
     return '➡️';
   };
 
-  // Get market maker status for order book
+  // Get market maker status for order book and current market cap
   const marketMakerStatus = marketMakerRef.current?.getStatus();
+  const currentMarketCap = marketMakerRef.current?.getCurrentMarketCap() || 20_000_000_000;
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-900'} p-4`}>
@@ -248,11 +250,11 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent">
-              $20B Order-Driven Market
+              ${(currentMarketCap / 1_000_000_000).toFixed(1)}B Ultra-Realistic Market
               {marketMakerMode && <Crown className="inline w-6 h-6 ml-2 text-yellow-400" />}
             </h1>
             <p className={`${isDarkMode ? 'text-gray-400' : 'text-gray-600'} mt-1`}>
-              Low Volatility Market • Realistic Order Sizes • Persistent Order Book • Price Range: $10-$10,000
+              Ultra-Low Volatility • Realistic Cents Movement • Persistent Orders • Price Range: $10-$10,000
               {marketMakerMode && <span className="text-yellow-400 font-bold"> • YOU CONTROL THE MARKET</span>}
             </p>
           </div>
@@ -299,8 +301,8 @@ const Index = () => {
               <div>
                 <h3 className="text-lg font-bold text-yellow-400">Market Control Mode Active</h3>
                 <p className="text-yellow-200 text-sm">
-                  You have enough capital to overpower the $15B market makers! Your trades will force the $20B market 
-                  to move in your direction for 10-20 candles, regardless of the $5B retail sentiment.
+                  You have enough capital to overpower the $15B market makers! Your trades will force the ${(currentMarketCap / 1_000_000_000).toFixed(1)}B market 
+                  to move in your direction for 5-25 candles with realistic price movements.
                 </p>
               </div>
             </div>
@@ -340,13 +342,13 @@ const Index = () => {
           <Card className={`${isDarkMode ? 'bg-blue-900/50 border-blue-700' : 'bg-blue-100 border-blue-300'} p-4`}>
             <div className="flex items-center justify-between">
               <div>
-                <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Total Market Cap</div>
-                <div className="text-xl font-bold text-white">$20B</div>
+                <div className={`text-sm ${isDarkMode ? 'text-blue-300' : 'text-blue-600'}`}>Dynamic Market Cap</div>
+                <div className="text-xl font-bold text-white">${(currentMarketCap / 1_000_000_000).toFixed(1)}B</div>
                 <div className={`text-sm ${isDarkMode ? 'text-blue-400' : 'text-blue-500'}`}>
-                  Order-Driven Market
+                  Ultra-Realistic Movement
                 </div>
               </div>
-              <div className="text-2xl">📊</div>
+              <div className="text-2xl">🐌</div>
             </div>
           </Card>
 
@@ -377,7 +379,7 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Market Trend Info (removed business cycle) */}
+        {/* Market Trend Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Card className={`${isDarkMode ? 'bg-purple-900/50 border-purple-700' : 'bg-purple-100 border-purple-300'} p-4`}>
             <div className="flex items-center justify-between">
@@ -394,16 +396,16 @@ const Index = () => {
             </div>
           </Card>
 
-          <Card className={`${isDarkMode ? 'bg-orange-900/50 border-orange-700' : 'bg-orange-100 border-orange-300'} p-4`}>
+          <Card className={`${isDarkMode ? 'bg-green-900/50 border-green-700' : 'bg-green-100 border-green-300'} p-4`}>
             <div className="flex items-center justify-between">
               <div>
-                <div className={`text-sm ${isDarkMode ? 'text-orange-300' : 'text-orange-600'}`}>Order Flow Focus</div>
-                <div className="text-xl font-bold text-white">Persistent Orders</div>
-                <div className={`text-sm ${isDarkMode ? 'text-orange-400' : 'text-orange-500'}`}>
-                  Low Volatility Trading
+                <div className={`text-sm ${isDarkMode ? 'text-green-300' : 'text-green-600'}`}>Price Movement</div>
+                <div className="text-xl font-bold text-white">Cents Per Candle</div>
+                <div className={`text-sm ${isDarkMode ? 'text-green-400' : 'text-green-500'}`}>
+                  Max 0.05% Movement
                 </div>
               </div>
-              <div className="text-2xl">📋</div>
+              <div className="text-2xl">💰</div>
             </div>
           </Card>
         </div>

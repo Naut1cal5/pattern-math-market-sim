@@ -1,3 +1,4 @@
+
 export class MarketMakerSimulation {
   private marketMakerMode: boolean = false;
   private manipulationDirection: 'up' | 'down' | null = null;
@@ -5,35 +6,39 @@ export class MarketMakerSimulation {
   private manipulationCandles: number = 0;
   private tradeVolumeBuffer: Array<{volume: number, direction: 'buy' | 'sell', timestamp: number, isClosing?: boolean}> = [];
   private openPositions: Map<string, {volume: number, direction: 'buy' | 'sell', timestamp: number}> = new Map();
+  private currentMarketCap: number = 20_000_000_000;
 
   // Market structure parameters
-  private readonly TOTAL_MARKET_CAP = 20_000_000_000; // $20B total market
+  private readonly INITIAL_MARKET_CAP = 20_000_000_000; // $20B initial market
   private readonly MARKET_MAKER_CAP = 15_000_000_000; // $15B market makers
   private readonly RETAIL_CAP = 5_000_000_000; // $5B retail traders
   private readonly MAX_PRICE = 10_000; // $10,000 max realistic price
   private readonly MIN_PRICE = 10; // $10 minimum price
-  private readonly BASE_VOLATILITY = 0.002; // 0.2% base volatility (very low)
-  private readonly PRICE_STEP_LIMIT = 0.001; // Max 0.1% price movement per candle normally
   
-  // Volume impact parameters - much more conservative
-  private readonly VOLUME_IMPACT_MULTIPLIER = 0.5; // Reduced impact
-  private readonly VOLUME_DECAY_TIME = 60000; // 60 seconds for volume impact to decay
-  private readonly MASSIVE_TRADE_THRESHOLD = 0.05; // 5% of market cap is considered massive
+  // EXTREMELY REDUCED volatility for realistic movement
+  private readonly BASE_VOLATILITY = 0.0001; // 0.01% base volatility (extremely low)
+  private readonly PRICE_STEP_LIMIT = 0.0005; // Max 0.05% price movement per candle (about $0.05-$5 depending on price)
+  
+  // Volume impact parameters - much more conservative for realistic movement
+  private readonly VOLUME_IMPACT_MULTIPLIER = 0.05; // Very minimal impact
+  private readonly VOLUME_DECAY_TIME = 300000; // 5 minutes for volume impact to decay (longer persistence)
+  private readonly MASSIVE_TRADE_THRESHOLD = 0.01; // 1% of market cap is considered massive
 
   constructor() {
-    console.log('🎯 Market Maker Simulation initialized with Order-Focused Trading');
-    console.log(`📊 Market Structure: $${(this.TOTAL_MARKET_CAP / 1_000_000_000).toFixed(0)}B total market`);
-    console.log(`🏦 Market Makers: $${(this.MARKET_MAKER_CAP / 1_000_000_000).toFixed(0)}B (${((this.MARKET_MAKER_CAP / this.TOTAL_MARKET_CAP) * 100).toFixed(0)}%)`);
-    console.log(`👥 Retail Traders: $${(this.RETAIL_CAP / 1_000_000_000).toFixed(0)}B (${((this.RETAIL_CAP / this.TOTAL_MARKET_CAP) * 100).toFixed(0)}%)`);
+    console.log('🎯 Market Maker Simulation initialized with Ultra-Realistic Price Movement');
+    console.log(`📊 Market Structure: $${(this.INITIAL_MARKET_CAP / 1_000_000_000).toFixed(0)}B initial market`);
+    console.log(`🏦 Market Makers: $${(this.MARKET_MAKER_CAP / 1_000_000_000).toFixed(0)}B (${((this.MARKET_MAKER_CAP / this.INITIAL_MARKET_CAP) * 100).toFixed(0)}%)`);
+    console.log(`👥 Retail Traders: $${(this.RETAIL_CAP / 1_000_000_000).toFixed(0)}B (${((this.RETAIL_CAP / this.INITIAL_MARKET_CAP) * 100).toFixed(0)}%)`);
     console.log(`💰 Price Range: $${this.MIN_PRICE} - $${this.MAX_PRICE.toLocaleString()}`);
-    console.log(`📈 Reduced Volatility: ${this.VOLUME_IMPACT_MULTIPLIER}x multiplier`);
+    console.log(`🐌 Ultra-Low Volatility: ${this.VOLUME_IMPACT_MULTIPLIER}x multiplier, ${(this.PRICE_STEP_LIMIT * 100).toFixed(3)}% max movement per candle`);
+    this.currentMarketCap = this.INITIAL_MARKET_CAP;
   }
 
   setMarketMakerMode(enabled: boolean) {
     this.marketMakerMode = enabled;
     console.log(`👑 Market Maker Mode ${enabled ? 'ENABLED' : 'DISABLED'}`);
     if (enabled) {
-      console.log(`🚀 You now control the $${(this.TOTAL_MARKET_CAP / 1_000_000_000).toFixed(0)}B market direction with volume-based impact!`);
+      console.log(`🚀 You now control the $${(this.currentMarketCap / 1_000_000_000).toFixed(0)}B market direction with volume-based impact!`);
     }
   }
 
@@ -49,9 +54,19 @@ export class MarketMakerSimulation {
     }
   }
 
-  // Add trade volume with position tracking
+  // Add trade volume with position tracking and market cap adjustment
   addTradeVolume(volume: number, direction: 'buy' | 'sell', positionId?: string, isClosing: boolean = false) {
     const timestamp = Date.now();
+    
+    // Adjust market cap based on money flow
+    if (direction === 'buy') {
+      this.currentMarketCap += volume * 0.1; // Money flowing in increases market cap
+    } else if (direction === 'sell') {
+      this.currentMarketCap -= volume * 0.1; // Money flowing out decreases market cap
+    }
+    
+    // Ensure market cap doesn't go below a minimum threshold
+    this.currentMarketCap = Math.max(this.currentMarketCap, this.INITIAL_MARKET_CAP * 0.5);
     
     if (isClosing && positionId && this.openPositions.has(positionId)) {
       // Handle position closure
@@ -65,7 +80,7 @@ export class MarketMakerSimulation {
       
       console.log(`🔄 POSITION CLOSED: $${(volume / 1_000_000).toFixed(1)}M ${originalPosition.direction} position closed -> Market pressure: ${closingDirection.toUpperCase()}`);
       
-      const volumePercent = (volume / this.TOTAL_MARKET_CAP) * 100;
+      const volumePercent = (volume / this.currentMarketCap) * 100;
       if (volumePercent > this.MASSIVE_TRADE_THRESHOLD * 100) {
         console.log(`💥 LARGE POSITION CLOSURE: ${volumePercent.toFixed(1)}% of market cap released!`);
       }
@@ -77,7 +92,7 @@ export class MarketMakerSimulation {
       
       this.tradeVolumeBuffer.push({ volume, direction, timestamp, isClosing: false });
       
-      const volumePercent = (volume / this.TOTAL_MARKET_CAP) * 100;
+      const volumePercent = (volume / this.currentMarketCap) * 100;
       console.log(`💰 NEW POSITION: $${(volume / 1_000_000).toFixed(1)}M ${direction.toUpperCase()} (${volumePercent.toFixed(2)}% of market)`);
       
       if (volumePercent > this.MASSIVE_TRADE_THRESHOLD * 100) {
@@ -120,22 +135,22 @@ export class MarketMakerSimulation {
 
     const netVolume = buyVolume - sellVolume;
     const totalVolume = buyVolume + sellVolume;
-    const volumeAsPercentOfMarket = totalVolume / this.TOTAL_MARKET_CAP;
+    const volumeAsPercentOfMarket = totalVolume / this.currentMarketCap;
     
-    // Calculate impact strength - much more conservative
-    let strength = Math.abs(netVolume) / this.TOTAL_MARKET_CAP * this.VOLUME_IMPACT_MULTIPLIER;
+    // Calculate impact strength - extremely conservative for realistic movement
+    let strength = Math.abs(netVolume) / this.currentMarketCap * this.VOLUME_IMPACT_MULTIPLIER;
     
-    // Amplify impact if there are significant position closures but less dramatically
+    // Amplify impact if there are significant position closures but minimally
     if (closingVolume > 0) {
-      const closureMultiplier = 1 + (closingVolume / this.TOTAL_MARKET_CAP) * 0.5; // Reduced multiplier
+      const closureMultiplier = 1 + (closingVolume / this.currentMarketCap) * 0.1; // Very small multiplier
       strength *= closureMultiplier;
     }
     
-    strength = Math.min(strength, 0.05); // Cap at 5% price movement
+    strength = Math.min(strength, 0.002); // Cap at 0.2% price movement (very small)
     
     const direction = netVolume > 0 ? 'up' : netVolume < 0 ? 'down' : 'neutral';
     
-    const description = `Buy: $${(buyVolume / 1_000_000).toFixed(1)}M, Sell: $${(sellVolume / 1_000_000).toFixed(1)}M, Closures: $${(closingVolume / 1_000_000).toFixed(1)}M, Net: ${direction} ${(strength * 100).toFixed(2)}%`;
+    const description = `Buy: $${(buyVolume / 1_000_000).toFixed(1)}M, Sell: $${(sellVolume / 1_000_000).toFixed(1)}M, Closures: $${(closingVolume / 1_000_000).toFixed(1)}M, Net: ${direction} ${(strength * 100).toFixed(4)}%`;
     
     if (volumeAsPercentOfMarket > this.MASSIVE_TRADE_THRESHOLD) {
       console.log(`📊 VOLUME IMPACT: ${description}`);
@@ -162,13 +177,13 @@ export class MarketMakerSimulation {
     const volumeImpact = this.calculateVolumeImpact();
     
     if (this.manipulationDirection && this.manipulationCandles < this.manipulationDuration) {
-      // Market maker mode manipulation - reduced strength
+      // Market maker mode manipulation - very reduced strength for realism
       const manipulation = {
         direction: this.manipulationDirection,
-        strength: 0.7 + (Math.random() * 0.2), // 70-90% strength (reduced)
+        strength: 0.3 + (Math.random() * 0.1), // 30-40% strength (much more realistic)
         isActive: true,
         candlesRemaining: this.manipulationDuration - this.manipulationCandles,
-        maxPriceStep: this.PRICE_STEP_LIMIT * 2, // Allow 0.2% max movement when manipulating
+        maxPriceStep: this.PRICE_STEP_LIMIT * 1.5, // Allow 0.075% max movement when manipulating
         priceConstraints: {
           min: this.MIN_PRICE,
           max: this.MAX_PRICE
@@ -179,14 +194,14 @@ export class MarketMakerSimulation {
       return manipulation;
     }
     
-    // Pure volume-based impact when not in manipulation mode - more conservative
-    if (volumeImpact.strength > 0.005) { // Only apply if impact is significant (>0.5%)
+    // Pure volume-based impact when not in manipulation mode - extremely conservative
+    if (volumeImpact.strength > 0.001) { // Only apply if impact is significant (>0.1%)
       return { 
         direction: volumeImpact.direction, 
         strength: volumeImpact.strength, 
         isActive: true, 
         candlesRemaining: 0,
-        maxPriceStep: this.PRICE_STEP_LIMIT * (1 + volumeImpact.strength * 2), // Reduced scale
+        maxPriceStep: this.PRICE_STEP_LIMIT * (1 + volumeImpact.strength * 0.5), // Very reduced scale
         priceConstraints: {
           min: this.MIN_PRICE,
           max: this.MAX_PRICE
@@ -209,9 +224,14 @@ export class MarketMakerSimulation {
     };
   }
 
+  getCurrentMarketCap() {
+    return this.currentMarketCap;
+  }
+
   getMarketStructure() {
     return {
-      totalMarketCap: this.TOTAL_MARKET_CAP,
+      totalMarketCap: this.currentMarketCap,
+      initialMarketCap: this.INITIAL_MARKET_CAP,
       marketMakerCap: this.MARKET_MAKER_CAP,
       retailCap: this.RETAIL_CAP,
       maxPrice: this.MAX_PRICE,
@@ -230,7 +250,7 @@ export class MarketMakerSimulation {
       
       if (this.manipulationCandles >= this.manipulationDuration) {
         console.log(`✅ Market manipulation COMPLETED after ${this.manipulationCandles} candles`);
-        console.log(`🏦 Market makers regain control of the $${(this.TOTAL_MARKET_CAP / 1_000_000_000).toFixed(0)}B market`);
+        console.log(`🏦 Market makers regain control of the $${(this.currentMarketCap / 1_000_000_000).toFixed(0)}B market`);
         this.manipulationDirection = null;
         this.manipulationDuration = 0;
         this.manipulationCandles = 0;
@@ -248,7 +268,7 @@ export class MarketMakerSimulation {
     
     return {
       enabled: this.marketMakerMode,
-      active: this.manipulationDirection !== null || volumeImpact.strength > 0.005,
+      active: this.manipulationDirection !== null || volumeImpact.strength > 0.001,
       direction: this.manipulationDirection || volumeImpact.direction,
       candlesRemaining: this.manipulationDuration - this.manipulationCandles,
       marketStructure: this.getMarketStructure(),
