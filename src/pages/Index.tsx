@@ -62,10 +62,8 @@ const Index = () => {
     }
     if (!marketMakerRef.current) {
       marketMakerRef.current = new MarketMakerSimulation();
-      // Pass the market maker instance to the simulation
-      if (simulationRef.current) {
-        simulationRef.current.setMarketMaker(marketMakerRef.current);
-      }
+      // MarketSimulation should handle its own market maker integration
+      // Removed the setMarketMaker call since this method doesn't exist
     }
   }, []);
 
