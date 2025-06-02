@@ -52,14 +52,7 @@ const Index = () => {
     if (!simulationRef.current) {
       simulationRef.current = new MarketSimulation({
         onPriceUpdate: (data) => {
-          // CRITICAL: Enforce price constraints before updating UI
-          if (marketMakerRef.current && data.price !== undefined) {
-            const constrainedPrice = marketMakerRef.current.enforceRealisticPriceMovement(data.price, marketData.price);
-            if (constrainedPrice !== data.price) {
-              console.log(`🔒 PRICE CONSTRAINED: $${data.price.toFixed(2)} -> $${constrainedPrice.toFixed(2)}`);
-              data.price = constrainedPrice;
-            }
-          }
+          // Direct price update without constraints - let MarketSimulation handle constraints
           setMarketData(data);
           setChartData(prev => [...prev.slice(-99), data]);
         },
@@ -69,8 +62,12 @@ const Index = () => {
     }
     if (!marketMakerRef.current) {
       marketMakerRef.current = new MarketMakerSimulation();
+      // Pass the market maker instance to the simulation
+      if (simulationRef.current) {
+        simulationRef.current.setMarketMaker(marketMakerRef.current);
+      }
     }
-  }, [marketData.price]);
+  }, []);
 
   // Hotkey event listener
   useEffect(() => {
@@ -186,7 +183,6 @@ const Index = () => {
       
       const currentMarketCap = marketMakerRef.current.getCurrentMarketCap();
       const volumePercent = (tradeVolume / currentMarketCap) * 100;
-      // REDUCED manipulation duration for realistic movement
       const manipulationDuration = Math.max(3, Math.min(8, Math.floor(volumePercent * 0.5)));
       
       console.log(`🎯 TRADE: ${type} $${(tradeVolume / 1_000_000_000).toFixed(2)}B -> ${direction.toUpperCase()} for ${manipulationDuration} candles`);
